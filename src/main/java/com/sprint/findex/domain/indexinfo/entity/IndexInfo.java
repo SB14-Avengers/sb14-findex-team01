@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.AccessLevel;
@@ -14,7 +15,12 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SourceType;
 
 @Entity
-@Table(name = "index_info")
+@Table(
+        name = "index_info",
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_index_info_classification_name",
+                        columnNames = {"index_classification", "index_name"}))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class IndexInfo extends BaseEntity {
@@ -22,7 +28,7 @@ public class IndexInfo extends BaseEntity {
     @Column(nullable = false)
     private String indexClassification; // 지수 분류명
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String indexName; // 지수명
 
     @Column(nullable = false)
