@@ -1,0 +1,45 @@
+# Dockerfile이 `COPY . .` 를 쓰므로, 이미지에 들어가면 안 되는 것들을 여기서 제외한다.
+# (빌드에 필요한 것: src/, build.gradle, settings.gradle, gradle/, gradlew, scripts/)
+
+# Git
+.git
+.gitignore
+.gitattributes
+.githooks
+
+# 빌드 산출물 / 캐시 (이미지 안에서 새로 빌드하므로 불필요, 용량 큼)
+build/
+.gradle/
+out/
+bin/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+
+# 환경 변수 / 비밀값 (배포는 Railway 환경변수로 주입)
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+
+# 로그 / 임시파일
+*.log
+*.tmp
+*.swp
+
+# 문서 (실행 이미지에 불필요)
+*.md
+README.md
+CLAUDE.md
+HELP.md
+SETUP.md

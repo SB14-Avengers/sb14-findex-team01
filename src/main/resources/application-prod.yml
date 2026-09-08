@@ -1,0 +1,32 @@
+# ==========================================================
+# 배포 환경 (Railway 등) — SPRING_PROFILES_ACTIVE=prod 로 활성화
+#
+# 배포 플랫폼에 아래 환경변수를 설정해야 함:
+#   DB_URL       예) jdbc:postgresql://<host>:<port>/<db>
+#   DB_USERNAME
+#   DB_PASSWORD
+#   PUBLIC_API_SERVICE_KEY (Open API 연동 구현 시 사용, 비밀값)
+#   (OPENAPI_URI는 비밀이 아니라 application.yml의 findex.openapi.uri에 고정값으로 있음)
+#
+# 스키마: schema.sql 수동 실행 없이 Hibernate가 엔티티 기준으로 자동 생성/반영
+#         (application.yml 의 spring.jpa.hibernate.ddl-auto: update 참고)
+# ==========================================================
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  # 운영에선 쿼리 로그 끔
+  jpa:
+    show-sql: false
+
+  h2:
+    console:
+      enabled: false
+
+logging:
+  level:
+    root: INFO
+    org.hibernate.SQL: warn

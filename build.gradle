@@ -1,0 +1,166 @@
+plugins {
+	// 코드 스타일 자동 정리 (google-java-format 기준)
+	id 'com.diffplug.spotless' version '8.6.0'
+
+	id 'java'
+	id 'org.springframework.boot' version '3.5.16'
+	id 'io.spring.dependency-management' version '1.1.7'
+	id 'jacoco'
+}
+
+// 코드 스타일 설정
+spotless {
+	enforceCheck = false   // ./gradlew build 시 스타일 위반해도 빌드 실패하지 않음
+	java {
+		googleJavaFormat().aosp()   // aosp() = 들여쓰기 4칸 (기본 Google 스타일은 2칸)
+	}
+}
+
+group = 'com.sprint'
+version = '0.0.1-SNAPSHOT'
+description = 'Findex - 금융 지수 관리 백엔드 API'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(17)
+	}
+}
+
+// annotationProcessor에 넣은 의존성을 compileOnly에도 자동으로 포함시켜줌
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	// ── Web & Validation ──────────────────────────────
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux' //공공 Api 관련 의존성 추가
+
+	// ── Database & JPA ────────────────────────────────
+	// 참고: Boot 3.x는 H2 콘솔이 spring-boot-starter-data-jpa 등에 이미 내장되어있어서
+	// 별도 모듈(spring-boot-h2console, Boot 4 전용) 추가할 필요 없음
+	// 대신 application.yml에 spring.h2.console.enabled=true 설정만 추가하면 됨
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	runtimeOnly 'com.h2database:h2'          // 테스트/로컬 개발용 DB
+	runtimeOnly 'org.postgresql:postgresql'  // 실제 운영 DB
+
+	// ── 모니터링 ───────────────────────────────────────
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'  // /actuator/health 등 서버 상태 확인
+
+	// ── AOP ───────────────────────────────────────────
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
+
+	// ── 로컬 개발 편의 도구 (배포 시엔 빠짐) ────────────
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'          // 코드 변경 시 자동 재시작
+	developmentOnly 'org.springframework.boot:spring-boot-docker-compose'    // 로컬 실행 시 compose.yaml 자동 인식
+
+	// ── Lombok ────────────────────────────────────────
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'  // Lombok + MapStruct 같이 쓸 때 필요
+
+	// ── MapStruct (Entity ↔ DTO 변환 자동화) ────────────
+	implementation 'org.mapstruct:mapstruct:1.6.3'
+	annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
+
+	// ── Swagger (API 문서 자동 생성) ─────────────────────
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.17'
+
+	// ── QueryDSL (쿼리 고도화 심화 요구사항용) ───────────
+	// Boot 3.x는 Hibernate 6을 쓰기 때문에, OpenFeign 포크의 6.x 라인을 사용해야 함
+	// (7.x는 Hibernate 7 = Boot 4 전용이라 여기선 안 맞음)
+	implementation 'io.github.openfeign.querydsl:querydsl-core:6.10.1'
+	implementation 'io.github.openfeign.querydsl:querydsl-jpa:6.10.1'
+	annotationProcessor 'io.github.openfeign.querydsl:querydsl-apt:6.10.1:jpa'
+
+	// ── Test ──────────────────────────────────────────
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'  // Gradle에서 JUnit5 실행에 필요
+}
+
+jacoco {
+	toolVersion = "0.8.12"
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+	finalizedBy tasks.named('jacocoTestReport')  // 테스트 실행 후 커버리지 리포트 자동 생성
+}
+
+tasks.named('jacocoTestReport') {
+	dependsOn tasks.named('test')
+	reports {
+		xml.required = true
+		html.required = true
+	}
+}
+
+// 팀원 클론 시 pre-commit/commit-msg hook 자동 설치
+// - pre-commit: 커밋 전 spotlessApply 자동 실행
+// - commit-msg: 커밋 메시지가 "Add:/Fix:/..." 형식인지 자동 검사
+tasks.register('installGitHooks', Copy) {
+	description = '팀원 클론 시 pre-commit/commit-msg hook을 자동으로 설치합니다.'
+	from "$rootDir/scripts/pre-commit"
+	from "$rootDir/.githooks/commit-msg"
+	into "$rootDir/.git/hooks"
+	filePermissions {
+		unix("0755")
+	}
+}
+
+// 커밋 메시지 템플릿(.gitmessage.txt) 자동 설정
+tasks.register('installGitMessageTemplate') {
+	description = '커밋 메시지 템플릿을 자동으로 설정합니다.'
+	doLast {
+		// Gradle 9부터 태스크 내에서 exec {} DSL을 바로 못 써서 Groovy 자체 프로세스 실행으로 대체
+		['git', 'config', 'commit.template', '.gitmessage.txt'].execute(null, rootDir).waitFor()
+	}
+}
+
+// 팀원 클론 시 인텔리제이 코드 스타일(들여쓰기 4칸) 자동 설정
+// - .idea/는 전체 gitignore 대상이라, 별도로 추적되는 config/ 아래 원본을 .idea/codeStyles/로 복사해두는 방식
+// - codeStyleConfig.xml(어떤 스킴 쓸지) + Project.xml(실제 규칙, 들여쓰기 4칸) 두 파일 다 복사
+//   (Spotless의 googleJavaFormat().aosp()랑 들여쓰기 칸수 맞춤)
+tasks.register('installIntellijCodeStyle', Copy) {
+	description = '팀원 클론 시 인텔리제이 코드 스타일(들여쓰기 4칸)을 자동으로 설정합니다.'
+	from "$rootDir/config/intellij/codeStyles"
+	into "$rootDir/.idea/codeStyles"
+}
+
+// build 실행 시에도 위 세 가지가 같이 적용되게 남겨둠 (수동으로 다시 설치하고 싶을 때 `./gradlew installGitHooks` 등으로 재실행 가능)
+tasks.named('build') {
+	dependsOn tasks.named('installGitHooks')
+	dependsOn tasks.named('installGitMessageTemplate')
+	dependsOn tasks.named('installIntellijCodeStyle')
+}
+
+// ⚠️ 위 dependsOn만으로는 `./gradlew build`를 직접 실행해야만 설치됨 — 인텔리제이 Run 버튼(▶)은
+// build 태스크를 거치지 않아서 훅이 안 깔림. "수동 설정 0단계"를 지키기 위해, 이 build.gradle이
+// 읽히는 시점(=프로젝트를 처음 열 때 인텔리제이가 자동으로 하는 Gradle sync 포함)에 바로 실행되게 함.
+// → 팀원은 그냥 프로젝트를 열기만 해도(Run 버튼도 누를 필요 없이) 훅/코드 스타일이 깔림.
+if (file("$rootDir/.git/hooks").exists()) {
+	copy {
+		from "$rootDir/scripts/pre-commit"
+		from "$rootDir/.githooks/commit-msg"
+		into "$rootDir/.git/hooks"
+		filePermissions {
+			unix("0755")
+		}
+	}
+	['git', 'config', 'commit.template', '.gitmessage.txt'].execute(null, rootDir).waitFor()
+	if (file("$rootDir/.idea").exists()) {
+		copy {
+			from "$rootDir/config/intellij/codeStyles"
+			into "$rootDir/.idea/codeStyles"
+		}
+	}
+}

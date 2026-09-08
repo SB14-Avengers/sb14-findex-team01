@@ -1,0 +1,11 @@
+<component name="ProjectCodeStyleConfiguration">
+  <state>
+    <option name="USE_PER_PROJECT_SETTINGS" value="true" />
+    <!-- "Project"는 내장 스킴 이름이 아니라, 같은 폴더에 있는 Project.xml(커스텀 규칙)을 쓰라는 뜻.
+         들여쓰기 4칸(google-java-format의 aosp() 옵션이랑 맞춤)이 인텔리제이에 내장된
+         이름있는 스킴으로는 없어서, 직접 규칙을 정의해뒀음(Project.xml 참고).
+         브레이스 위치/줄바꿈 같은 세부 규칙까지 100% 똑같진 않을 수 있지만,
+         들여쓰기 칸수는 정확히 맞춰둠. -->
+    <option name="PREFERRED_PROJECT_CODE_STYLE" value="Project" />
+  </state>
+</component>

@@ -1,0 +1,22 @@
+name: Validate PR Target
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-pr-source:
+    name: Validate PR Source Branch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check PR source branch
+        run: |
+          echo "base branch: ${{ github.base_ref }}"
+          echo "head branch: ${{ github.head_ref }}"
+
+          if [ "${{ github.base_ref }}" = "main" ] && [ "${{ github.head_ref }}" != "develop" ]; then
+            echo "main 브랜치로는 develop 브랜치에서만 PR을 보낼 수 있습니다."
+            exit 1
+          fi

@@ -1,0 +1,23 @@
+# Gradle 의존성 / GitHub Actions 버전을 매주 자동으로 스캔해서
+# 업데이트 가능한 게 있으면 PR을 자동으로 열어주는 GitHub 표준 기능.
+#
+# 프로젝트 마감까지 임시로 꺼둠 (open-pull-requests-limit: 0) —
+# 메이저 버전 업그레이드 제안(Spring Boot 4, QueryDSL 7 등)이 지금 단계에
+# 프로젝트를 깨뜨릴 위험이 있어서. 마감 후 다시 켜려면 아래 5로 되돌리면 됨.
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore"

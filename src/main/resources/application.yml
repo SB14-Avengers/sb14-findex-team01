@@ -1,0 +1,47 @@
+# ==========================================================
+# 공통 설정 — 모든 환경에서 적용됨
+# 환경별 설정: application-local.yml (로컬 개발) / application-prod.yml (배포)
+# 실행 프로파일: 아무것도 안 주면 local. 배포 시 환경변수 SPRING_PROFILES_ACTIVE=prod 로 덮어씀
+# ==========================================================
+spring:
+  application:
+    name: findex
+
+  profiles:
+    default: local   # spring.profiles.active 를 따로 안 주면 local 프로파일로 실행
+
+  # .env 파일을 프로퍼티로 읽어들임 (로컬 개발용). 파일 없으면 무시됨(optional)
+  # 배포 환경은 .env 없이 플랫폼 환경변수를 직접 사용
+  config:
+    import: optional:file:.env[.properties]
+
+  jpa:
+    open-in-view: false  # REST API 전용이라 뷰 렌더링까지 DB 커넥션을 물고 있을 필요 없음
+    hibernate:
+      ddl-auto: update   # 엔티티 어노테이션 기준으로 Hibernate가 테이블/컬럼 자동 생성·반영
+      naming:
+        # 카멜케이스(Java) → 스네이크케이스(DB) 변환 규칙 명시.
+        # Spring Boot 기본값(SpringPhysicalNamingStrategy)이 이미 동일하게 동작해서 사실상 중복이지만,
+        # 팀원이 명시적으로 추천해서 안전하게 같이 적어둠 (기능 겹쳐도 오류 없음)
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+
+  jackson:
+    time-zone: Asia/Seoul               # 서버 시간대와 무관하게 응답 날짜/시간을 한국 시간 기준으로 고정
+    serialization:
+      write-dates-as-timestamps: false  # LocalDate(Time) 을 숫자 배열이 아닌 ISO-8601 문자열로 직렬화
+
+# findex 전용 커스텀 설정
+findex:
+  # CSV Export는 서버 디스크에 저장하지 않고 응답을 바로 스트리밍한다.
+  # (api-docs상 GET /api/index-data/export/csv 응답이 format: binary — 파일로 저장 후 내려주는 방식이 아님.
+  #  Railway 같은 PaaS는 파일시스템이 휘발성이라 디스크에 저장하면 재배포/재시작 시 파일이 사라짐)
+  # 공공데이터포털 주가지수 API 엔드포인트 (비밀 아님, 고정값)
+  openapi:
+    uri: https://apis.data.go.kr/1160100/service/GetMarketIndexInfoService/getStockMarketIndex
+  error:
+    # 서버 오류(500) 응답의 details 에 내부 예외 메시지를 그대로 담을지 여부.
+    # 공통 기본값은 false(숨김) — 배포 안전. 로컬 개발에서만 application-local.yml 에서 true 로 켠다.
+    # (로그에는 프로파일과 무관하게 항상 전체 스택트레이스가 남으므로 디버깅에는 지장 없음)
+    expose-details: false
+
+# Swagger 경로

@@ -1,0 +1,39 @@
+# ==========================================================
+# 로컬 개발 환경 (기본 프로파일)
+# - DB: Docker Compose 로 뜨는 Postgres 15 (compose.yaml)
+# - 비밀값: .env 파일에서 주입 (DB_PASSWORD 등)
+# ==========================================================
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/findex
+    username: findex_user
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  # 개발 중엔 실행되는 SQL 을 눈으로 확인
+  jpa:
+    show-sql: true
+    hibernate:
+      # 도메인 설계가 계속 바뀌는 초기 개발 단계라 로컬만 create로 오버라이드
+      # (update는 컬럼 삭제/이름변경/제약조건 변경을 제대로 못 따라가서 낡은 스키마가 남을 수 있음)
+      # 대신 서버 재시작마다 로컬 데이터는 전부 초기화됨 — 배포(prod)는 application.yml의 update 그대로 유지됨
+      ddl-auto: create
+    properties:
+      hibernate:
+        format_sql: true
+
+  # http://localhost:8080/h2-console 에서 현재 연결된 DB(Postgres) 조회 (참고용)
+  h2:
+    console:
+      enabled: true
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    # 바인딩되는 파라미터 값까지 보려면 아래 주석 해제
+    # org.hibernate.orm.jdbc.bind: TRACE
+
+# 로컬 개발 중엔 500 응답에 내부 예외 메시지를 그대로 노출 (원인 파악 편의)
+findex:
+  error:
+    expose-details: true

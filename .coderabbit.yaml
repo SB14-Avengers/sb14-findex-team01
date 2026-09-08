@@ -1,0 +1,49 @@
+# CodeRabbit 설정 파일
+# 이 파일을 저장소 최상위 경로(루트)에 커밋하면 자동으로 적용됩니다.
+# 참고 문서: https://docs.coderabbit.ai/reference/configuration
+
+# 리뷰 코멘트 언어 설정 (기본값은 영어 en-US)
+language: ko-KR
+
+reviews:
+  # 리뷰 강도: chill(느슨하게) / assertive(꼼꼼하게)
+  # 처음 도입하는 팀이라 assertive로 시작해서 꼼꼼하게 잡아주는 걸 추천
+  profile: assertive
+
+  # PR을 열면 자동으로 리뷰 시작 (false로 하면 매번 @coderabbitai review 직접 입력해야 함)
+  auto_review:
+    enabled: true
+    drafts: false   # Draft PR은 자동 리뷰 제외
+    # 기본값은 "레포의 기본 브랜치(main)로 가는 PR"만 자동 리뷰함.
+    # 어떤 브랜치로 가는 PR이든 다 자동 리뷰 대상에 포함되도록 전체 브랜치 대상으로 열어둠
+    base_branches:
+      - ".*"
+
+  # PR 요약(Walkthrough) 자동 생성
+  high_level_summary: true
+
+  # 리뷰에서 제외할 경로 (빌드 산출물, 의존성 등 리뷰할 필요 없는 파일)
+  path_filters:
+    - "!**/build/**"
+    - "!**/.gradle/**"
+    - "!**/*.class"
+    - "!**/out/**"
+    - "!**/node_modules/**"
+
+  # 특정 경로에 대한 리뷰 가이드 (Java/Spring Boot 컨벤션에 맞춘 예시, 필요에 맞게 수정하세요)
+  path_instructions:
+    - path: "**/src/main/java/**/*.java"
+      instructions: >
+        Spring Boot 컨벤션을 따르는지 확인해주세요. 컨트롤러에는 비즈니스 로직이 없어야 하고,
+        서비스 레이어에서 처리해야 합니다. JPA 엔티티에 불필요한 연관관계 로딩(N+1 문제)이
+        없는지도 확인해주세요.
+    - path: "**/src/test/**/*.java"
+      instructions: >
+        테스트 코드가 실제 동작을 검증하는지, 예외 케이스도 다루고 있는지 확인해주세요.
+
+  # CodeRabbit이 문제를 발견했을 때 GitHub 리뷰 상태를 "Request changes"(변경 요청)로 남길지 여부
+  # false: 코멘트만 남기고 승인/거부 처리는 하지 않음
+  request_changes_workflow: false
+
+chat:
+  auto_reply: true

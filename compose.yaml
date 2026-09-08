@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: 'postgres:15'
+    environment:
+      - 'POSTGRES_DB=findex'
+      - 'POSTGRES_USER=findex_user'
+      - 'POSTGRES_PASSWORD=${DB_PASSWORD}'
+    ports:
+      - '5432:5432'
+    volumes:
+      - 'findex-postgres-data:/var/lib/postgresql/data'
+
+volumes:
+  findex-postgres-data:

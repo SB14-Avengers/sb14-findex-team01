@@ -1,0 +1,65 @@
+#!/bin/sh
+
+COMMIT_MSG_FILE="$1"
+
+# 주석과 빈 줄을 제외한 첫 번째 줄을 커밋 제목으로 사용
+TITLE=$(grep -vE '^[[:space:]]*#' "$COMMIT_MSG_FILE" | sed '/^[[:space:]]*$/d' | head -n 1)
+
+# 제목 비어있는지 검사
+if [ -z "$TITLE" ]; then
+  echo ""
+  echo "커밋 메시지를 입력해주세요."
+  echo ""
+  echo "사용 예시:"
+  echo "  feat: 지수 정보 생성 API 추가"
+  echo "  fix: 지수 데이터 중복 저장 오류 수정"
+  echo "  refactor: 동기화 서비스 로직 분리"
+  echo "  docs: README 실행 방법 추가"
+  echo "  chore: build.gradle 의존성 정리"
+  echo ""
+  exit 1
+fi
+
+# 70자 이하 검사
+TITLE_LENGTH=$(printf "%s" "$TITLE" | wc -m | tr -d ' ')
+
+if [ "$TITLE_LENGTH" -gt 70 ]; then
+  echo ""
+  echo "커밋 제목은 70자 이하로 작성해주세요."
+  echo "현재 글자 수: $TITLE_LENGTH"
+  echo "현재 제목: $TITLE"
+  echo ""
+  echo "수정 예시:"
+  echo "  feat: 지수 정보 생성 API 추가"
+  echo "  fix: 중복 저장 오류 수정"
+  echo ""
+  exit 1
+fi
+
+# 허용 타입 검사
+if ! echo "$TITLE" | grep -Eq '^(feat|fix|refactor|docs|chore): .+'; then
+  echo ""
+  echo "커밋 메시지 형식이 올바르지 않습니다."
+  echo ""
+  echo "사용 가능한 형식:"
+  echo "  feat: 새로운 기능/파일 추가"
+  echo "  fix: 코드 수정"
+  echo "  refactor: 코드 리팩토링 (파일/폴더명 변경 포함)"
+  echo "  docs: README와 같은 문서 수정"
+  echo "  chore: 코드 로직과 무관한 설정/빌드/도구 변경"
+  echo ""
+  echo "복사해서 사용할 수 있는 예시:"
+  echo "  feat: 지수 정보 생성 API 추가"
+  echo "  fix: 지수 데이터 중복 저장 오류 수정"
+  echo "  refactor: 공통 예외 처리 구조 개선"
+  echo "  refactor: SyncHistory를 SyncJob으로 변경"
+  echo "  docs: README 프로젝트 실행 방법 추가"
+  echo "  chore: build.gradle 의존성 정리"
+  echo ""
+  echo "현재 입력된 커밋 메시지:"
+  echo "  $TITLE"
+  echo ""
+  exit 1
+fi
+
+exit 0

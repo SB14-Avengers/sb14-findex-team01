@@ -1,0 +1,15 @@
+<component name="ProjectCodeStyleConfiguration">
+  <code_scheme name="Project" version="173">
+    <!-- google-java-format aosp() 스타일(들여쓰기 4칸)에 맞춘 커스텀 규칙.
+         build.gradle의 Spotless 설정(googleJavaFormat().aosp())이랑 짝을 맞춤. -->
+    <codeStyleSettings language="Java">
+      <option name="RIGHT_MARGIN" value="100" />
+      <indentOptions>
+        <option name="INDENT_SIZE" value="4" />
+        <option name="CONTINUATION_INDENT_SIZE" value="8" />
+        <option name="TAB_SIZE" value="4" />
+        <option name="USE_TAB_CHARACTER" value="false" />
+      </indentOptions>
+    </codeStyleSettings>
+  </code_scheme>
+</component>

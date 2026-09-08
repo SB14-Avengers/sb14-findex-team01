@@ -1,0 +1,17 @@
+#!/bin/sh
+echo "Spotless로 코드 스타일 정리 중..."
+./gradlew spotlessApply
+
+if [ $? -ne 0 ]; then
+  echo "Spotless 적용 실패. 커밋이 중단됩니다."
+  exit 1
+fi
+
+# 이름이 바뀌거나(rename) 삭제된 파일은 "옛날 경로"가 이 목록에 같이 잡히는데,
+# 그 경로는 디스크에 실체가 없어서 그냥 git add 하면 "pathspec did not match" 에러가 남.
+# 그래서 지금 실제로 존재하는 파일만 골라서 다시 add한다.
+git diff --cached --name-only -z | while IFS= read -r -d '' f; do
+  [ -e "$f" ] && printf '%s\0' "$f"
+done | xargs -0 -r git add --
+
+echo "코드 스타일 정리 완료, 커밋을 진행합니다."
