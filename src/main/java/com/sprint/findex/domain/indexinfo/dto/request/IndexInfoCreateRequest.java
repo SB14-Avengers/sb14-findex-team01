@@ -11,6 +11,6 @@ public record IndexInfoCreateRequest(
         @NotBlank(message = "지수 분류명은 필수입니다") String indexClassification,
         @NotBlank(message = "지수명은 필수입니다") String indexName,
         @NotNull @Positive Integer employedItemsCount,
-        @NotNull LocalDate basePointInTime,
+        @NotNull LocalDate baseDate,
         @NotNull BigDecimal baseIndex,
         Boolean favorite) {}
