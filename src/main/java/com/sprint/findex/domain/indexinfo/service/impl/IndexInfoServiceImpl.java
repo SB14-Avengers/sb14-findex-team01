@@ -1,5 +1,6 @@
 package com.sprint.findex.domain.indexinfo.service.impl;
 
+import com.sprint.findex.domain.autosyncconfig.repository.AutoSyncConfigRepository;
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoCreateRequest;
 import com.sprint.findex.domain.indexinfo.dto.response.IndexInfoResponse;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class IndexInfoServiceImpl implements IndexInfoService {
     private final IndexInfoRepository indexInfoRepository;
+    private final AutoSyncConfigRepository autoSyncConfigRepository;
 
     @Override
     @Transactional
@@ -34,6 +36,7 @@ public class IndexInfoServiceImpl implements IndexInfoService {
                         SourceType.USER);
 
         IndexInfo saved = indexInfoRepository.save(indexInfo);
+
         return IndexInfoResponse.from(saved);
     }
 }
