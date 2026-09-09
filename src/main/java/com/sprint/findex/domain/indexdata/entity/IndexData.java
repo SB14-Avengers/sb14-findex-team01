@@ -1,3 +1,87 @@
 package com.sprint.findex.domain.indexdata.entity;
 
-public class IndexData {}
+import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
+import com.sprint.findex.global.entity.BaseEntity;
+import com.sprint.findex.global.type.SourceType;
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Getter
+@Table(
+        name = "index_data",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"index_info_id", "base_date"}))
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class IndexData extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "index_info_id", nullable = false)
+    private IndexInfo indexInfo; // 지수 정보
+
+    @Column(name = "base_date", nullable = false)
+    private LocalDate baseDate; // 날짜
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source_type", nullable = false)
+    private SourceType sourceType; // 소스타입
+
+    @Column(name = "market_price", nullable = false)
+    private BigDecimal marketPrice; // 시가
+
+    @Column(name = "closing_price", nullable = false)
+    private BigDecimal closingPrice; // 종가
+
+    @Column(name = "high_price", nullable = false)
+    private BigDecimal highPrice; // 고가
+
+    @Column(name = "low_price", nullable = false)
+    private BigDecimal lowPrice; // 저가
+
+    @Column(name = "versus", nullable = false)
+    private BigDecimal versus; // 대비
+
+    @Column(name = "fluctuation_rate", nullable = false)
+    private BigDecimal fluctuationRate; // 등락률
+
+    @Column(name = "trading_quantity", nullable = false)
+    private Long tradingQuantity; // 거래량
+
+    @Column(name = "trading_price", nullable = false)
+    private Long tradingPrice; // 거래대금
+
+    @Column(name = "market_total_amount", nullable = false)
+    private Long marketTotalAmount; // 상장 시가 총액
+
+    @Builder
+    private IndexData(
+            IndexInfo indexInfo,
+            LocalDate baseDate,
+            SourceType sourceType,
+            BigDecimal marketPrice,
+            BigDecimal closingPrice,
+            BigDecimal highPrice,
+            BigDecimal lowPrice,
+            BigDecimal versus,
+            BigDecimal fluctuationRate,
+            Long tradingQuantity,
+            Long tradingPrice,
+            Long marketTotalAmount) {
+        this.indexInfo = indexInfo;
+        this.baseDate = baseDate;
+        this.sourceType = sourceType;
+        this.marketPrice = marketPrice;
+        this.closingPrice = closingPrice;
+        this.highPrice = highPrice;
+        this.lowPrice = lowPrice;
+        this.versus = versus;
+        this.fluctuationRate = fluctuationRate;
+        this.tradingQuantity = tradingQuantity;
+        this.tradingPrice = tradingPrice;
+        this.marketTotalAmount = marketTotalAmount;
+    }
+}
