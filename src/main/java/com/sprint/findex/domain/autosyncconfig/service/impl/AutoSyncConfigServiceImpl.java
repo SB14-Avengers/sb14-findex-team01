@@ -73,12 +73,13 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
 
         for (AutoSyncConfig config : targets) {
             IndexInfo indexInfo = config.getIndexInfo();
+            Long indexInfoId = indexInfo.getId(); // try/catch 양쪽에서 재사용 (catch 안에서 또 실패하는 것 방지)
 
             try {
                 // 연동작업파트 메서드 확정 되면 여기에 추가해서 #18에 수정 예정.
-                log.info("[자동연동] 대상 확인 : indexInfoId={}", indexInfo.getId());
+                log.info("[자동연동] 대상 확인 : indexInfoId={}", indexInfoId);
             } catch (Exception e) {
-                log.error("[자동연동] 실패 : indexInfoId={}", indexInfo.getId(), e);
+                log.error("[자동연동] 실패 : indexInfoId={}", indexInfoId, e);
                 // 여기도 #18에서 수정 예정
             }
         }
