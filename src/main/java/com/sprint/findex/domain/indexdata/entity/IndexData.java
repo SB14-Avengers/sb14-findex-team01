@@ -17,7 +17,10 @@ import org.hibernate.annotations.OnDeleteAction;
 @Getter
 @Table(
         name = "index_data",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"index_info_id", "base_date"}))
+        uniqueConstraints =
+                @UniqueConstraint(
+                        name = "uk_index_data_indexInfo_baseDate",
+                        columnNames = {"index_info_id", "base_date"}))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class IndexData extends BaseEntity {
 
@@ -33,22 +36,22 @@ public class IndexData extends BaseEntity {
     @Column(name = "source_type", nullable = false)
     private SourceType sourceType; // 소스타입
 
-    @Column(name = "market_price", nullable = false)
+    @Column(name = "market_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal marketPrice; // 시가
 
-    @Column(name = "closing_price", nullable = false)
+    @Column(name = "closing_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal closingPrice; // 종가
 
-    @Column(name = "high_price", nullable = false)
+    @Column(name = "high_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal highPrice; // 고가
 
-    @Column(name = "low_price", nullable = false)
+    @Column(name = "low_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal lowPrice; // 저가
 
-    @Column(name = "versus", nullable = false)
+    @Column(name = "versus", nullable = false, precision = 15, scale = 2)
     private BigDecimal versus; // 대비
 
-    @Column(name = "fluctuation_rate", nullable = false)
+    @Column(name = "fluctuation_rate", nullable = false, precision = 10, scale = 4)
     private BigDecimal fluctuationRate; // 등락률
 
     @Column(name = "trading_quantity", nullable = false)
