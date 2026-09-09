@@ -1,6 +1,9 @@
 package com.sprint.findex.domain.autosyncconfig.service.impl;
 
+import com.sprint.findex.domain.autosyncconfig.dto.request.AutoSyncConfigUpdateRequest;
+import com.sprint.findex.domain.autosyncconfig.dto.response.AutoSyncConfigDto;
 import com.sprint.findex.domain.autosyncconfig.entity.AutoSyncConfig;
+import com.sprint.findex.domain.autosyncconfig.mapper.AutoSyncConfigMapper;
 import com.sprint.findex.domain.autosyncconfig.repository.AutoSyncConfigRepository;
 import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigService;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
@@ -17,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
 
     private final AutoSyncConfigRepository autoSyncConfigRepository;
+    private final AutoSyncConfigMapper autoSyncConfigMapper;
 
     @Override
     @Transactional
@@ -33,8 +37,29 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
         try {
             autoSyncConfigRepository.save(AutoSyncConfig.from(indexInfo));
         } catch (DataIntegrityViolationException e) {
-            // existsByIndexInfo 체크와 save 사이의 동시 요청으로 unique 제약이 걸린 경우
             throw new BusinessException(AutoSyncConfigErrorCode.ALREADY_EXISTS);
         }
+    }
+
+    @Override
+    @Transactional
+    public AutoSyncConfigDto update(Long id, AutoSyncConfigUpdateRequest request) {
+        if (id == null) {
+            throw new BusinessException(AutoSyncConfigErrorCode.ID_NULL);
+        }
+
+        if (request == null || request.enabled() == null) {
+            throw new BusinessException(AutoSyncConfigErrorCode.ENABLED_REQUIRED);
+        }
+
+        AutoSyncConfig config =
+                autoSyncConfigRepository
+                        .findById(id)
+                        .orElseThrow(
+                                () -> new BusinessException(AutoSyncConfigErrorCode.NOT_FOUND));
+
+        config.updateEnabled(request.enabled());
+
+        return autoSyncConfigMapper.toDto(config);
     }
 }
