@@ -1,5 +1,6 @@
 package com.sprint.findex.domain.indexinfo.service.impl;
 
+import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigService;
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoCreateRequest;
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoOpenApiRegisterRequest;
 import com.sprint.findex.domain.indexinfo.dto.response.IndexInfoDto;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class IndexInfoServiceImpl implements IndexInfoService {
     private final IndexInfoRepository indexInfoRepository;
     private final IndexInfoMapper indexInfoMapper;
+    private final AutoSyncConfigService autoSyncConfigService;
 
     @Override
     @Transactional
@@ -40,7 +42,7 @@ public class IndexInfoServiceImpl implements IndexInfoService {
                         Boolean.TRUE.equals(request.favorite()));
 
         IndexInfo saved = indexInfoRepository.save(indexInfo);
-
+        autoSyncConfigService.initializeFor(saved);
         return indexInfoMapper.toDto(saved);
     }
 
@@ -63,6 +65,7 @@ public class IndexInfoServiceImpl implements IndexInfoService {
                         false);
 
         IndexInfo saved = indexInfoRepository.save(indexInfo);
+        autoSyncConfigService.initializeFor(saved);
         return indexInfoMapper.toDto(saved);
     }
 }
