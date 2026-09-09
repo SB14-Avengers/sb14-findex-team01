@@ -35,7 +35,7 @@ public class IndexInfo extends BaseEntity {
     private int employedItemsCount; // 채용 종목 수
 
     @Column(nullable = false)
-    private LocalDate baseDate; // 기준 시점
+    private LocalDate basePointInTime; // 기준 시점
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal baseIndex; // 기준 지수
@@ -58,7 +58,7 @@ public class IndexInfo extends BaseEntity {
         this.indexClassification = indexClassification;
         this.indexName = indexName;
         this.employedItemsCount = employedItemsCount;
-        this.baseDate = basePointInTime;
+        this.basePointInTime = basePointInTime;
         this.baseIndex = baseIndex;
         this.sourceType = sourceType;
         this.favorite = favorite;
