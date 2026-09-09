@@ -24,7 +24,6 @@ public class DashboardController implements DashboardApi {
         return ResponseEntity.ok(chart);
     }
 
-    // 살려줘
     @Override
     public ResponseEntity<List<RankedIndexPerformanceDto>> rankSelect(
             Long indexInfoId, PerformancePeriodType periodType, Integer limit) {
