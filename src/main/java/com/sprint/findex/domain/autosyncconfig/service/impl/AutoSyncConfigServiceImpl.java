@@ -7,6 +7,7 @@ import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.global.exception.BusinessException;
 import com.sprint.findex.global.exception.errorcode.AutoSyncConfigErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,11 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
             throw new BusinessException(AutoSyncConfigErrorCode.ALREADY_EXISTS);
         }
 
-        autoSyncConfigRepository.save(AutoSyncConfig.from(indexInfo));
+        try {
+            autoSyncConfigRepository.save(AutoSyncConfig.from(indexInfo));
+        } catch (DataIntegrityViolationException e) {
+            // existsByIndexInfo 체크와 save 사이의 동시 요청으로 unique 제약이 걸린 경우
+            throw new BusinessException(AutoSyncConfigErrorCode.ALREADY_EXISTS);
+        }
     }
 }
