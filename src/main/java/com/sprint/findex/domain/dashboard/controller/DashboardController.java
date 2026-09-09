@@ -22,7 +22,6 @@ public class DashboardController implements DashboardApi {
         return dashboardService.getChart(id, periodType);
     }
 
-    // 살려줘
     @Override
     public List<RankedIndexPerformanceDto> rankSelect(
             Long indexInfoId, PerformancePeriodType periodType, Integer limit) {
