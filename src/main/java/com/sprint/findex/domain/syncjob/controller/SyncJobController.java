@@ -14,7 +14,7 @@ public class SyncJobController implements SyncJobApi {
     private final SyncJobService syncJobService;
 
     @Override
-    public ResponseEntity<List<SyncJobDto>> indexInfoSync() {
+    public ResponseEntity<List<SyncJobDto>> indexInfoSync() throws Exception {
         List<SyncJobDto> syncJobs = syncJobService.indexInfoSync();
         return ResponseEntity.accepted().body(syncJobs);
     }
