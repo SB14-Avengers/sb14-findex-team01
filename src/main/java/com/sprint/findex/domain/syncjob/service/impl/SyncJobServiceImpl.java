@@ -1,6 +1,5 @@
 package com.sprint.findex.domain.syncjob.service.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
@@ -10,6 +9,8 @@ import com.sprint.findex.domain.syncjob.entity.SyncJob;
 import com.sprint.findex.domain.syncjob.mapper.SyncJobMapper;
 import com.sprint.findex.domain.syncjob.repository.SyncJobRepository;
 import com.sprint.findex.domain.syncjob.service.SyncJobService;
+import com.sprint.findex.global.exception.BusinessException;
+import com.sprint.findex.global.exception.errorcode.SyncJobErrorCode;
 import com.sprint.findex.global.type.JobResult;
 import com.sprint.findex.global.type.JobType;
 import com.sprint.findex.global.type.SourceType;
@@ -44,28 +45,34 @@ public class SyncJobServiceImpl implements SyncJobService {
     @Value("${PUBLIC_API_SERVICE_KEY}")
     private String serviceKey;
 
-    private JsonNode fetch(LocalDate baseDate) throws JsonProcessingException {
-        String url =
-                baseUrl
-                        + "?serviceKey="
-                        + URLEncoder.encode(serviceKey, StandardCharsets.UTF_8)
-                        + "&resultType=json&pageNo=1&numOfRows=1000"
-                        + "&basDt="
-                        + baseDate.format(BAS_DT);
+    private JsonNode fetch(LocalDate baseDate) {
+        try {
+            String url =
+                    baseUrl
+                            + "?serviceKey="
+                            + URLEncoder.encode(serviceKey, StandardCharsets.UTF_8)
+                            + "&resultType=json&pageNo=1&numOfRows=1000"
+                            + "&basDt="
+                            + baseDate.format(BAS_DT);
 
-        String json = RestClient.create().get().uri(URI.create(url)).retrieve().body(String.class);
+            String json =
+                    RestClient.create().get().uri(URI.create(url)).retrieve().body(String.class);
 
-        return new ObjectMapper()
-                .readTree(json)
-                .path("response")
-                .path("body")
-                .path("items")
-                .path("item");
+            return new ObjectMapper()
+                    .readTree(json)
+                    .path("response")
+                    .path("body")
+                    .path("items")
+                    .path("item");
+        } catch (Exception e) {
+            log.error("[OpenApi] 호출 실패 basDt={}", baseDate, e);
+            throw new BusinessException(SyncJobErrorCode.OPEN_API_CALL_FAILED);
+        }
     }
 
     @Override
     @Transactional
-    public List<SyncJobDto> indexInfoSync() throws Exception {
+    public List<SyncJobDto> indexInfoSync() {
         // TODO: OpenApi로 교체
         List<SyncJobDto> syncJobs = new ArrayList<>();
         JsonNode items = fetch(LocalDate.of(2026, 9, 8));
@@ -83,11 +90,8 @@ public class SyncJobServiceImpl implements SyncJobService {
             String indexClassification = item.path("idxCsf").asText();
             String indexName = item.path("idxNm").asText();
             int employedItemsCount = item.path("epyItmsCnt").asInt();
-            LocalDate baseDate =
-                    item.hasNonNull("basPntm")
-                            ? LocalDate.parse(item.get("basPntm").asText(), BAS_DT)
-                            : null;
-            BigDecimal baseIndex = item.path("basIdx").decimalValue();
+            LocalDate baseDate = LocalDate.parse(item.get("basPntm").asText(), BAS_DT);
+            BigDecimal baseIndex = new BigDecimal(item.get("basIdx").asText());
 
             // TODO: indexInfo 존재하면 업데이트, 미존재하면 생성 - 업데이트(employedItemsCount, baseDate, baseIndex)
             // TODO: 나중에 findByIndexClassificationAndIndexName 필요

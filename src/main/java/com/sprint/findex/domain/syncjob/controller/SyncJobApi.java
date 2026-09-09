@@ -16,7 +16,7 @@ public interface SyncJobApi {
 
     @Operation(summary = "지수 정보 연동")
     @PostMapping(value = "/index-infos")
-    ResponseEntity<List<SyncJobDto>> indexInfoSync() throws Exception;
+    ResponseEntity<List<SyncJobDto>> indexInfoSync();
 
     @Operation(summary = "지수 데이터 연동")
     @PostMapping(value = "/index-data")
