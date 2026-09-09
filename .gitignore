@@ -44,6 +44,10 @@ out/
 .env.*
 !.env.example
 
+### Local dummy data ###
+/src/main/resources/application-data.yml
+/src/main/resources/data.sql
+
 ### macOS ###
 .DS_Store
 .AppleDouble
