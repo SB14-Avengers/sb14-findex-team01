@@ -9,4 +9,5 @@ public interface IndexDataRepository extends JpaRepository<IndexData, Long> {
     List<IndexData> findByIndexInfoIdOrderByBaseDateAsc(Long indexInfoId);
 
     boolean existsByIndexInfoIdAndBaseDate(Long indexInfoId, LocalDate baseDate);
+
 }
