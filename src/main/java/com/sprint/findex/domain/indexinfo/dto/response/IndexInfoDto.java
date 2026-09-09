@@ -9,7 +9,7 @@ public record IndexInfoDto(
         String indexClassification,
         String indexName,
         Integer employedItemsCount,
-        LocalDate baseDate,
+        LocalDate basePointInTime,
         BigDecimal baseIndex,
         SourceType sourceType,
         boolean favorite) {}

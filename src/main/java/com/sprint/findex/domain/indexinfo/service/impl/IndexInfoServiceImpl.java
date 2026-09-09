@@ -34,7 +34,7 @@ public class IndexInfoServiceImpl implements IndexInfoService {
                         request.indexClassification(),
                         request.indexName(),
                         request.employedItemsCount(),
-                        request.baseDate(),
+                        request.basePointInTime(),
                         request.baseIndex(),
                         SourceType.USER,
                         Boolean.TRUE.equals(request.favorite()));
@@ -57,7 +57,7 @@ public class IndexInfoServiceImpl implements IndexInfoService {
                         request.indexClassification(),
                         request.indexName(),
                         request.employedItemsCount(),
-                        request.baseDate(),
+                        request.basePointInTime(),
                         request.baseIndex(),
                         SourceType.OPEN_API,
                         false);

@@ -51,14 +51,14 @@ public class IndexInfo extends BaseEntity {
             String indexClassification,
             String indexName,
             int employedItemsCount,
-            LocalDate baseDate,
+            LocalDate basePointInTime,
             BigDecimal baseIndex,
             SourceType sourceType,
             boolean favorite) {
         this.indexClassification = indexClassification;
         this.indexName = indexName;
         this.employedItemsCount = employedItemsCount;
-        this.baseDate = baseDate;
+        this.baseDate = basePointInTime;
         this.baseIndex = baseIndex;
         this.sourceType = sourceType;
         this.favorite = favorite;
@@ -68,7 +68,7 @@ public class IndexInfo extends BaseEntity {
             String indexClassification,
             String indexName,
             int employedItemsCount,
-            LocalDate baseDate,
+            LocalDate basePointInTime,
             BigDecimal baseIndex,
             SourceType sourceType,
             boolean favorite) {
@@ -76,7 +76,7 @@ public class IndexInfo extends BaseEntity {
                 indexClassification,
                 indexName,
                 employedItemsCount,
-                baseDate,
+                basePointInTime,
                 baseIndex,
                 sourceType,
                 favorite);

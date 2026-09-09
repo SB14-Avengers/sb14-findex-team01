@@ -7,5 +7,5 @@ public record IndexInfoOpenApiRegisterRequest(
         String indexClassification,
         String indexName,
         int employedItemsCount,
-        LocalDate baseDate,
+        LocalDate basePointInTime,
         BigDecimal baseIndex) {}
