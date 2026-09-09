@@ -1,6 +1,7 @@
 package com.sprint.findex.domain.indexinfo.entity;
 
 import com.sprint.findex.global.entity.BaseEntity;
+import com.sprint.findex.global.type.SourceType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,7 +13,6 @@ import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.SourceType;
 
 @Entity
 @Table(
