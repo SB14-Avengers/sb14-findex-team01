@@ -1,10 +1,13 @@
 package com.sprint.findex.domain.indexinfo.service.impl;
 
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoCreateRequest;
-import com.sprint.findex.domain.indexinfo.dto.response.IndexInfoResponse;
+import com.sprint.findex.domain.indexinfo.dto.response.IndexInfoDto;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
+import com.sprint.findex.domain.indexinfo.mapper.IndexInfoMapper;
 import com.sprint.findex.domain.indexinfo.repository.IndexInfoRepository;
 import com.sprint.findex.domain.indexinfo.service.IndexInfoService;
+import com.sprint.findex.global.exception.BusinessException;
+import com.sprint.findex.global.exception.errorcode.IndexInfoErrorCode;
 import com.sprint.findex.global.type.SourceType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,13 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class IndexInfoServiceImpl implements IndexInfoService {
     private final IndexInfoRepository indexInfoRepository;
+    private final IndexInfoMapper indexInfoMapper;
 
     @Override
     @Transactional
-    public IndexInfoResponse register(IndexInfoCreateRequest request) {
+    public IndexInfoDto register(IndexInfoCreateRequest request) {
         if (indexInfoRepository.existsByIndexClassificationAndIndexName(
                 request.indexClassification(), request.indexName())) {
-            throw new IllegalArgumentException("이미 등록된 지수입니다.");
+            throw new BusinessException(IndexInfoErrorCode.DUPLICATE);
         }
 
         IndexInfo indexInfo =
@@ -36,6 +40,6 @@ public class IndexInfoServiceImpl implements IndexInfoService {
 
         IndexInfo saved = indexInfoRepository.save(indexInfo);
 
-        return IndexInfoResponse.from(saved);
+        return indexInfoMapper.toDto(saved);
     }
 }

@@ -1,7 +1,7 @@
 package com.sprint.findex.domain.indexinfo.controller;
 
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoCreateRequest;
-import com.sprint.findex.domain.indexinfo.dto.response.IndexInfoResponse;
+import com.sprint.findex.domain.indexinfo.dto.response.IndexInfoDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -15,5 +15,5 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public interface IndexInfoApi {
     @Operation(summary = "지수 정보 등록")
     @PostMapping
-    ResponseEntity<IndexInfoResponse> register(@RequestBody @Valid IndexInfoCreateRequest request);
+    ResponseEntity<IndexInfoDto> register(@RequestBody @Valid IndexInfoCreateRequest request);
 }
