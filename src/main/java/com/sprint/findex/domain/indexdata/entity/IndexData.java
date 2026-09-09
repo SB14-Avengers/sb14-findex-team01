@@ -7,7 +7,6 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.OnDelete;
@@ -63,7 +62,6 @@ public class IndexData extends BaseEntity {
     @Column(name = "market_total_amount", nullable = false)
     private Long marketTotalAmount; // 상장 시가 총액
 
-    @Builder
     private IndexData(
             IndexInfo indexInfo,
             LocalDate baseDate,
@@ -89,5 +87,33 @@ public class IndexData extends BaseEntity {
         this.tradingQuantity = tradingQuantity;
         this.tradingPrice = tradingPrice;
         this.marketTotalAmount = marketTotalAmount;
+    }
+
+    public static IndexData of(
+            IndexInfo indexInfo,
+            LocalDate baseDate,
+            SourceType sourceType,
+            BigDecimal marketPrice,
+            BigDecimal closingPrice,
+            BigDecimal highPrice,
+            BigDecimal lowPrice,
+            BigDecimal versus,
+            BigDecimal fluctuationRate,
+            Long tradingQuantity,
+            Long tradingPrice,
+            Long marketTotalAmount) {
+        return new IndexData(
+                indexInfo,
+                baseDate,
+                sourceType,
+                marketPrice,
+                closingPrice,
+                highPrice,
+                lowPrice,
+                versus,
+                fluctuationRate,
+                tradingQuantity,
+                tradingPrice,
+                marketTotalAmount);
     }
 }
