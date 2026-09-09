@@ -4,6 +4,8 @@ import com.sprint.findex.domain.autosyncconfig.entity.AutoSyncConfig;
 import com.sprint.findex.domain.autosyncconfig.repository.AutoSyncConfigRepository;
 import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigService;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
+import com.sprint.findex.global.exception.BusinessException;
+import com.sprint.findex.global.exception.errorcode.AutoSyncConfigErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,15 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
     @Override
     @Transactional
     public void initializeFor(IndexInfo indexInfo) {
+
+        if (indexInfo == null) {
+            throw new BusinessException(AutoSyncConfigErrorCode.INDEX_INFO_NULL);
+        }
+
+        if (autoSyncConfigRepository.existsByIndexInfo(indexInfo)) {
+            throw new BusinessException(AutoSyncConfigErrorCode.ALREADY_EXISTS);
+        }
+
         autoSyncConfigRepository.save(AutoSyncConfig.from(indexInfo));
     }
 }
