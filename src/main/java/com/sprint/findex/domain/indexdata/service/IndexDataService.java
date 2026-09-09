@@ -1,3 +1,8 @@
 package com.sprint.findex.domain.indexdata.service;
 
-public interface IndexDataService {}
+import com.sprint.findex.domain.indexdata.dto.request.IndexDataCreateRequest;
+import com.sprint.findex.domain.indexdata.dto.response.IndexDataDto;
+
+public interface IndexDataService {
+    IndexDataDto create(IndexDataCreateRequest createRequest);
+}
