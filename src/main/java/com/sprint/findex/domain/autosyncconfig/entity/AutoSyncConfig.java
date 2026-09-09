@@ -18,7 +18,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AutoSyncConfig extends BaseEntity {
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "index_info_id", nullable = false, unique = true)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private IndexInfo indexInfo;
