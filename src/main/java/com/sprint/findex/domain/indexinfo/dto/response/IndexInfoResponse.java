@@ -10,7 +10,7 @@ public record IndexInfoResponse(
         String indexClassification,
         String indexName,
         Integer employedItemsCount,
-        LocalDate basePointInTime,
+        LocalDate baseDate,
         BigDecimal baseIndex,
         SourceType sourceType,
         boolean favorite) {
