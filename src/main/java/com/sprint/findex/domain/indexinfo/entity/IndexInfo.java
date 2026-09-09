@@ -53,14 +53,15 @@ public class IndexInfo extends BaseEntity {
             int employedItemsCount,
             LocalDate baseDate,
             BigDecimal baseIndex,
-            SourceType sourceType) {
+            SourceType sourceType,
+            boolean favorite) {
         this.indexClassification = indexClassification;
         this.indexName = indexName;
         this.employedItemsCount = employedItemsCount;
         this.baseDate = baseDate;
         this.baseIndex = baseIndex;
         this.sourceType = sourceType;
-        this.favorite = false;
+        this.favorite = favorite;
     }
 
     public static IndexInfo of(
@@ -69,14 +70,16 @@ public class IndexInfo extends BaseEntity {
             int employedItemsCount,
             LocalDate baseDate,
             BigDecimal baseIndex,
-            SourceType sourceType) {
+            SourceType sourceType,
+            boolean favorite) {
         return new IndexInfo(
                 indexClassification,
                 indexName,
                 employedItemsCount,
                 baseDate,
                 baseIndex,
-                sourceType);
+                sourceType,
+                favorite);
     }
 
     public void updateFavorite(boolean favorite) {

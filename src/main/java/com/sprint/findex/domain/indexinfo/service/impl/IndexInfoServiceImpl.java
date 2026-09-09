@@ -31,7 +31,8 @@ public class IndexInfoServiceImpl implements IndexInfoService {
                         request.employedItemsCount(),
                         request.baseDate(),
                         request.baseIndex(),
-                        SourceType.USER);
+                        SourceType.USER,
+                        Boolean.TRUE.equals(request.favorite()));
 
         IndexInfo saved = indexInfoRepository.save(indexInfo);
 
