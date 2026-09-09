@@ -66,3 +66,7 @@ Desktop.ini
 ### Temporary files ###
 *.tmp
 *.swp
+
+## 더미 데이터
+application-data.yml
+data.sql
