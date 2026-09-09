@@ -15,7 +15,7 @@ public class IndexInfoController implements IndexInfoApi {
 
     @Override
     public ResponseEntity<IndexInfoDto> register(IndexInfoCreateRequest request) {
-        IndexInfoDto response = indexInfoService.register(request);
+        IndexInfoDto response = indexInfoService.registerFromUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

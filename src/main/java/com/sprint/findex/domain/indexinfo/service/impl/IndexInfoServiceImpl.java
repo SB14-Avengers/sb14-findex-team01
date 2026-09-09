@@ -1,6 +1,7 @@
 package com.sprint.findex.domain.indexinfo.service.impl;
 
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoCreateRequest;
+import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoOpenApiRegisterRequest;
 import com.sprint.findex.domain.indexinfo.dto.response.IndexInfoDto;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.domain.indexinfo.mapper.IndexInfoMapper;
@@ -22,7 +23,7 @@ public class IndexInfoServiceImpl implements IndexInfoService {
 
     @Override
     @Transactional
-    public IndexInfoDto register(IndexInfoCreateRequest request) {
+    public IndexInfoDto registerFromUser(IndexInfoCreateRequest request) {
         if (indexInfoRepository.existsByIndexClassificationAndIndexName(
                 request.indexClassification(), request.indexName())) {
             throw new BusinessException(IndexInfoErrorCode.DUPLICATE);
@@ -40,6 +41,28 @@ public class IndexInfoServiceImpl implements IndexInfoService {
 
         IndexInfo saved = indexInfoRepository.save(indexInfo);
 
+        return indexInfoMapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public IndexInfoDto registerFromOpenApi(IndexInfoOpenApiRegisterRequest request) {
+        if (indexInfoRepository.existsByIndexClassificationAndIndexName(
+                request.indexClassification(), request.indexName())) {
+            throw new BusinessException(IndexInfoErrorCode.DUPLICATE);
+        }
+
+        IndexInfo indexInfo =
+                IndexInfo.of(
+                        request.indexClassification(),
+                        request.indexName(),
+                        request.employedItemsCount(),
+                        request.baseDate(),
+                        request.baseIndex(),
+                        SourceType.OPEN_API,
+                        false);
+
+        IndexInfo saved = indexInfoRepository.save(indexInfo);
         return indexInfoMapper.toDto(saved);
     }
 }
