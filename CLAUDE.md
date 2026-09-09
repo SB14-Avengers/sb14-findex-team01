@@ -93,7 +93,6 @@ src/main/java/com/sprint/findex/
 │   ├── entity/
 │   │   └── BaseEntity.java           # @MappedSuperclass, Long PK(@GeneratedValue IDENTITY) + createdAt/updatedAt(Instant) + AuditingEntityListener
 │   ├── common/
-│   │   ├── ApiResponse.java          # 공통 성공 응답 래퍼 record (status, data) — ApiResponse.success(data)
 │   │   └── CursorPageResponse.java   # 커서 기반 페이지네이션 응답 record
 │   ├── exception/
 │   │   ├── GlobalExceptionHandler.java # @RestControllerAdvice, 전역 예외 처리
@@ -135,7 +134,7 @@ src/main/java/com/sprint/findex/
 **패키지 규칙**: 도메인별로 폴더를 나누고(`domain/{도메인명}`), 그 안에서 `entity/controller/service/repository/mapper`를 다시 하위 패키지로 나눈다. Service/Repository는 인터페이스(`service/`, `repository/`)와 구현체(`service/impl/`, `repository/impl/`)를 분리한다. 여러 도메인이 공통으로 쓰는 코드만 `global/`에 둔다.
 
 **현재 상태**:
-- 채워진 것: `global/` 인프라(BaseEntity, ApiResponse/CursorPageResponse, BusinessException/GlobalExceptionHandler + 도메인별 ErrorCode, type enum, SwaggerConfig)와 도메인별 요청/응답 DTO(record, api-docs 레퍼런스 스펙 기준 필드 정렬)
+- 채워진 것: `global/` 인프라(BaseEntity, CursorPageResponse, BusinessException/GlobalExceptionHandler + 도메인별 ErrorCode, type enum, SwaggerConfig)와 도메인별 요청/응답 DTO(record, api-docs 레퍼런스 스펙 기준 필드 정렬)
 - 빈 스텁: 각 도메인의 Entity/Controller/Service(+impl)/Repository(+impl)/Mapper는 `public class Xxx {}` / `public interface Xxx {}` 형태의 빈 껍데기. Repository도 아직 `JpaRepository`를 상속하지 않음 — 팀원 배정 후 본격 구현 예정
 - 없는 것(과거 스캐폴딩에서 삭제됨, 필요 시 재도입): `global/aop/TimeTraceAspect`, `global/config/openapi/OpenApiConfig`
   - `SchedulingConfig` 클래스는 없지만 `@EnableScheduling`은 `FindexApplication`에 이미 적용돼있음 — 위 "핵심 기술 스택" Spring Scheduler 항목 참고
@@ -150,12 +149,13 @@ src/main/java/com/sprint/findex/
 
 ### API 응답 패턴
 ```java
-// 성공 응답: ApiResponse<T>로 감싸서 반환 (record: int status, T data)
-ApiResponse.success(data)   // status 200 고정
+// 성공 응답: 감싸지 않고 DTO(또는 DTO 배열/CursorPageResponse)를 그대로 최상위에 반환
+return indexInfoMapper.toDto(savedIndexInfo);
 
 // 실패 응답: GlobalExceptionHandler가 ErrorResponse로 통일해서 반환
 ErrorResponse.of(errorCode, message)   // BusinessException 처리 시
 ```
+- 에러 응답(`ErrorResponse`)은 명세서에도 실제로 그 구조(`timestamp`/`status`/`message`/`details`)로 있어서 그대로 유지 — 영향 없음
 - 커스텀 예외는 `BusinessException` 하나만 두고, 도메인별 `BaseErrorCode` 구현 enum(`global/exception/errorcode/{Domain}ErrorCode.java`)으로 상태코드/코드/메시지를 정의한다.
 - 예: `throw new BusinessException(IndexInfoErrorCode.NOT_FOUND)` — `GlobalExceptionHandler`가 `BusinessException`을 잡아서 해당 errorCode 기준 `ErrorResponse`로 변환한다.
 - 새 도메인 예외가 필요하면 새 클래스를 만들 필요 없이, 그 도메인의 `{Domain}ErrorCode` enum에 상수만 추가하면 된다.
@@ -232,7 +232,7 @@ record CursorPageResponse<T>(
 
 ## 중요한 개발 규칙 (Development Guidelines)
 
-1. **응답 형식**: 성공은 `ApiResponse`, 실패는 `GlobalExceptionHandler`를 거친 `ErrorResponse`로 통일
+1. **응답 형식**: 성공은 DTO(또는 DTO 배열/`CursorPageResponse`)를 그대로 반환(래퍼 없음), 실패는 `GlobalExceptionHandler`를 거친 `ErrorResponse`로 통일
 2. **Entity 직접 노출 금지**: Controller/Service는 항상 DTO(record)로 변환해서 응답
 3. **예외 처리**: 새 예외 클래스를 만들지 말고, 해당 도메인의 `{Domain}ErrorCode` enum에 상수 추가 후 `throw new BusinessException(errorCode)`로 던진다 (`global/exception/errorcode/`)
 4. **페이지네이션**: 목록 조회는 커서 기반(`CursorPageResponse`) 패턴 준수
@@ -246,7 +246,6 @@ record CursorPageResponse<T>(
 ```
 src/main/java/com/sprint/findex/FindexApplication.java                 # 엔트리 포인트 (@EnableJpaAuditing)
 src/main/java/com/sprint/findex/global/entity/BaseEntity.java          # 엔티티 공통 베이스 (Long PK + createdAt/updatedAt)
-src/main/java/com/sprint/findex/global/common/ApiResponse.java         # 공통 성공 응답 래퍼
 src/main/java/com/sprint/findex/global/common/CursorPageResponse.java  # 커서 페이지네이션 응답
 src/main/java/com/sprint/findex/global/exception/BusinessException.java
 src/main/java/com/sprint/findex/global/exception/GlobalExceptionHandler.java
