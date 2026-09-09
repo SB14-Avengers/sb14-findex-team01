@@ -155,7 +155,6 @@ return indexInfoMapper.toDto(savedIndexInfo);
 // 실패 응답: GlobalExceptionHandler가 ErrorResponse로 통일해서 반환
 ErrorResponse.of(errorCode, message)   // BusinessException 처리 시
 ```
-- **`ApiResponse<T>`(status/data 래퍼) 안 씀 — 삭제됨.** 원래 "성공 응답은 ApiResponse로 감싸서 반환"이 규칙이었으나, api-docs 명세서 원문(`findexclaude.md` swagger 전체)을 다시 확인해보니 이런 래퍼가 어디에도 없고 성공 응답은 전부 DTO를 그대로(배열이면 배열째로) 최상위에 반환하는 구조였음. 코드잇 제공 프론트엔드가 이 명세서 기준으로 파싱하므로, 래퍼를 씌우면 연동이 깨짐 — 발견 시점에 실제로 이 클래스를 쓰는 컨트롤러가 하나도 없어서(아직 아무도 구현 전) `ApiResponse.java` 삭제하고 컨벤션만 바로잡음
 - 에러 응답(`ErrorResponse`)은 명세서에도 실제로 그 구조(`timestamp`/`status`/`message`/`details`)로 있어서 그대로 유지 — 영향 없음
 - 커스텀 예외는 `BusinessException` 하나만 두고, 도메인별 `BaseErrorCode` 구현 enum(`global/exception/errorcode/{Domain}ErrorCode.java`)으로 상태코드/코드/메시지를 정의한다.
 - 예: `throw new BusinessException(IndexInfoErrorCode.NOT_FOUND)` — `GlobalExceptionHandler`가 `BusinessException`을 잡아서 해당 errorCode 기준 `ErrorResponse`로 변환한다.
