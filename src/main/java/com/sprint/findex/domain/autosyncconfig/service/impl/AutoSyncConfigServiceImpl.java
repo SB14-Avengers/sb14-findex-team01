@@ -9,7 +9,9 @@ import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigService;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.global.exception.BusinessException;
 import com.sprint.findex.global.exception.errorcode.AutoSyncConfigErrorCode;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
+@Slf4j
 public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
 
     private final AutoSyncConfigRepository autoSyncConfigRepository;
@@ -61,5 +64,23 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
         config.updateEnabled(request.enabled());
 
         return autoSyncConfigMapper.toDto(config);
+    }
+
+    @Override
+    @Transactional
+    public void executeAutoSync() {
+        List<AutoSyncConfig> targets = autoSyncConfigRepository.findByEnabledTrue();
+
+        for (AutoSyncConfig config : targets) {
+            IndexInfo indexInfo = config.getIndexInfo();
+
+            try {
+                // 연동작업파트 메서드 확정 되면 여기에 추가해서 #18에 수정 예정.
+                log.info("[자동연동] 대상 확인 : indexInfoId={}", indexInfo.getId());
+            } catch (Exception e) {
+                log.error("[자동연동] 실패 : indexInfoId={}", indexInfo.getId(), e);
+                // 여기도 #18에서 수정 예정
+            }
+        }
     }
 }

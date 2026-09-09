@@ -9,4 +9,6 @@ public interface AutoSyncConfigService {
     void initializeFor(IndexInfo indexInfo);
 
     AutoSyncConfigDto update(Long id, AutoSyncConfigUpdateRequest request);
+
+    void executeAutoSync();
 }
