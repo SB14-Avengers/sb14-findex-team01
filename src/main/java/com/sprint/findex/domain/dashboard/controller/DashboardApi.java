@@ -9,6 +9,7 @@ import com.sprint.findex.global.type.PerformancePeriodType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,24 +21,24 @@ public interface DashboardApi {
 
     @Operation(summary = "지수 차트 조회")
     @GetMapping(value = "/index-data/{id}/chart")
-    IndexChartDto chartSelect(
+    ResponseEntity<IndexChartDto> chartSelect(
             @PathVariable Long id,
             @RequestParam(defaultValue = "MONTHLY") ChartPeriodType periodType);
 
     @Operation(summary = "지수 성과 랭킹 조회")
     @GetMapping(value = "/index-data/performance/rank")
-    List<RankedIndexPerformanceDto> rankSelect(
+    ResponseEntity<List<RankedIndexPerformanceDto>> rankSelect(
             @RequestParam(required = false) Long indexInfoId,
             @RequestParam(defaultValue = "DAILY") PerformancePeriodType periodType,
             @RequestParam(defaultValue = "10") Integer limit);
 
     @Operation(summary = "관심 지수 성과 조회")
     @GetMapping(value = "/index-data/performance/favorite")
-    List<IndexPerformanceDto> favoriteSelect(
+    ResponseEntity<List<IndexPerformanceDto>> favoriteSelect(
             @RequestParam(defaultValue = "DAILY") PerformancePeriodType periodType);
 
     @Tag(name = "지수 정보 API", description = "지수 정보 목록 조회")
     @Operation(summary = "지수 정보 요약 목록 조회")
     @GetMapping(value = "/index-infos/summaries")
-    List<IndexInfoSummaryDto> summaries();
+    ResponseEntity<List<IndexInfoSummaryDto>> summaries();
 }
