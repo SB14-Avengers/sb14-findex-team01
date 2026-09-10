@@ -19,4 +19,10 @@ public class IndexDataController implements IndexDataApi {
         IndexDataDto indexDataDto = indexDataService.create(createRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(indexDataDto);
     }
+
+    @Override
+    public ResponseEntity<IndexDataDto> getById(Long indexDataId) {
+        IndexDataDto indexDataDto = indexDataService.getById(indexDataId);
+        return ResponseEntity.ok(indexDataDto);
+    }
 }

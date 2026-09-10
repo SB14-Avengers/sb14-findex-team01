@@ -5,4 +5,6 @@ import com.sprint.findex.domain.indexdata.dto.response.IndexDataDto;
 
 public interface IndexDataService {
     IndexDataDto create(IndexDataCreateRequest createRequest);
+
+    IndexDataDto getById(Long indexDataId);
 }
