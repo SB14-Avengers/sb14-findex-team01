@@ -31,4 +31,10 @@ public class IndexInfoController implements IndexInfoApi {
         IndexInfoDto response = indexInfoService.update(id, request);
         return ResponseEntity.ok(response);
     }
+
+    @Override
+    public ResponseEntity<Void> delete(Long id) {
+        indexInfoService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }
