@@ -23,5 +23,6 @@ public interface IndexDataApi {
     @Operation(summary = "지수 데이터 수정")
     @PatchMapping("/{indexDataId}")
     ResponseEntity<IndexDataDto> update(
-            @PathVariable Long indexDataId, @RequestBody IndexDataUpdateRequest updateRequest);
+            @PathVariable Long indexDataId,
+            @Valid @RequestBody IndexDataUpdateRequest updateRequest);
 }
