@@ -82,6 +82,7 @@ public class SyncJobServiceImpl implements SyncJobService {
         // TODO: OpenApi로 교체
         List<SyncJobDto> syncJobs = new ArrayList<>();
         JsonNode items = fetch(LocalDate.of(2026, 9, 8));
+        String worker = clientIpResolver();
 
         for (JsonNode item : items) {
             if (!item.hasNonNull("basPntm")
@@ -119,7 +120,7 @@ public class SyncJobServiceImpl implements SyncJobService {
                                     JobType.INDEX_INFO,
                                     indexInfo,
                                     null,
-                                    clientIpResolver(),
+                                    worker,
                                     JobResult.SUCCESS));
 
             syncJobs.add(syncJobMapper.toDto(created));
@@ -148,7 +149,9 @@ public class SyncJobServiceImpl implements SyncJobService {
             SyncJob last = content.get(content.size() - 1);
             nextCursor =
                     "targetDate".equals(request.sortField())
-                            ? String.valueOf(last.getTargetDate())
+                            ? (last.getTargetDate() == null
+                                    ? "null"
+                                    : last.getTargetDate().toString())
                             : last.getCreatedAt().toString();
             nextIdAfter = last.getId();
         }
@@ -194,6 +197,10 @@ public class SyncJobServiceImpl implements SyncJobService {
         }
         if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getRemoteAddr();
+        }
+
+        if (clientIp != null && clientIp.contains(",")) {
+            clientIp = clientIp.split(",")[0].trim();
         }
 
         return clientIp;
