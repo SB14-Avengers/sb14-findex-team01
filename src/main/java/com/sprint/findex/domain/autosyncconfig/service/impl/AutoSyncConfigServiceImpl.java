@@ -1,5 +1,40 @@
 package com.sprint.findex.domain.autosyncconfig.service.impl;
 
+import com.sprint.findex.domain.autosyncconfig.entity.AutoSyncConfig;
+import com.sprint.findex.domain.autosyncconfig.repository.AutoSyncConfigRepository;
 import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigService;
+import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
+import com.sprint.findex.global.exception.BusinessException;
+import com.sprint.findex.global.exception.errorcode.AutoSyncConfigErrorCode;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {}
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
+
+    private final AutoSyncConfigRepository autoSyncConfigRepository;
+
+    @Override
+    @Transactional
+    public void initializeFor(IndexInfo indexInfo) {
+
+        if (indexInfo == null) {
+            throw new BusinessException(AutoSyncConfigErrorCode.INDEX_INFO_NULL);
+        }
+
+        if (autoSyncConfigRepository.existsByIndexInfo(indexInfo)) {
+            throw new BusinessException(AutoSyncConfigErrorCode.ALREADY_EXISTS);
+        }
+
+        try {
+            autoSyncConfigRepository.save(AutoSyncConfig.from(indexInfo));
+        } catch (DataIntegrityViolationException e) {
+            // existsByIndexInfo 체크와 save 사이의 동시 요청으로 unique 제약이 걸린 경우
+            throw new BusinessException(AutoSyncConfigErrorCode.ALREADY_EXISTS);
+        }
+    }
+}

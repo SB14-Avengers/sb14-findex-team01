@@ -35,7 +35,7 @@ public class IndexInfo extends BaseEntity {
     private int employedItemsCount; // 채용 종목 수
 
     @Column(nullable = false)
-    private LocalDate baseDate; // 기준 시점
+    private LocalDate basePointInTime; // 기준 시점
 
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal baseIndex; // 기준 지수
@@ -51,32 +51,35 @@ public class IndexInfo extends BaseEntity {
             String indexClassification,
             String indexName,
             int employedItemsCount,
-            LocalDate baseDate,
+            LocalDate basePointInTime,
             BigDecimal baseIndex,
-            SourceType sourceType) {
+            SourceType sourceType,
+            boolean favorite) {
         this.indexClassification = indexClassification;
         this.indexName = indexName;
         this.employedItemsCount = employedItemsCount;
-        this.baseDate = baseDate;
+        this.basePointInTime = basePointInTime;
         this.baseIndex = baseIndex;
         this.sourceType = sourceType;
-        this.favorite = false;
+        this.favorite = favorite;
     }
 
     public static IndexInfo of(
             String indexClassification,
             String indexName,
             int employedItemsCount,
-            LocalDate baseDate,
+            LocalDate basePointInTime,
             BigDecimal baseIndex,
-            SourceType sourceType) {
+            SourceType sourceType,
+            boolean favorite) {
         return new IndexInfo(
                 indexClassification,
                 indexName,
                 employedItemsCount,
-                baseDate,
+                basePointInTime,
                 baseIndex,
-                sourceType);
+                sourceType,
+                favorite);
     }
 
     public void updateFavorite(boolean favorite) {
