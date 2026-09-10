@@ -25,4 +25,8 @@ public interface IndexDataApi {
     ResponseEntity<IndexDataDto> update(
             @PathVariable Long indexDataId,
             @Valid @RequestBody IndexDataUpdateRequest updateRequest);
+
+    @Operation(summary = "지수 데이터 삭제")
+    @DeleteMapping("/{indexDataId}")
+    ResponseEntity<Void> deleteById(@PathVariable Long indexDataId);
 }

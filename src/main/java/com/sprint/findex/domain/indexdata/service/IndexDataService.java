@@ -10,4 +10,6 @@ public interface IndexDataService {
     IndexDataDto getById(Long indexDataId);
 
     IndexDataDto update(Long indexDataId, IndexDataUpdateRequest updateRequest);
+
+    void deleteById(Long indexDataId);
 }

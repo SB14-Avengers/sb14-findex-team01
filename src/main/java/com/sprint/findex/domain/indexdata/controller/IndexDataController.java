@@ -33,4 +33,10 @@ public class IndexDataController implements IndexDataApi {
         IndexDataDto indexDataDto = indexDataService.update(indexDataId, updateRequest);
         return ResponseEntity.ok(indexDataDto);
     }
+
+    @Override
+    public ResponseEntity<Void> deleteById(Long indexDataId) {
+        indexDataService.deleteById(indexDataId);
+        return ResponseEntity.noContent().build();
+    }
 }

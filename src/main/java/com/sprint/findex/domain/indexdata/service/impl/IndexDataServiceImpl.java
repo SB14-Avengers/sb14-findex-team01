@@ -124,4 +124,22 @@ public class IndexDataServiceImpl implements IndexDataService {
                 indexDataDto.marketTotalAmount());
         return indexDataDto;
     }
+
+    @Override
+    @Transactional
+    public void deleteById(Long indexDataId) {
+        IndexData indexData =
+                indexDataRepository
+                        .findById(indexDataId)
+                        .orElseThrow(() -> new BusinessException(IndexDataErrorCode.NOT_FOUND));
+
+        indexDataRepository.delete(indexData);
+
+        log.info(
+                "지수 데이터 삭제 성공: indexDataId={}, indexInfoId={}, baseDate={}, sourceType={}",
+                indexData.getId(),
+                indexData.getIndexInfo().getId(),
+                indexData.getBaseDate(),
+                indexData.getSourceType());
+    }
 }
