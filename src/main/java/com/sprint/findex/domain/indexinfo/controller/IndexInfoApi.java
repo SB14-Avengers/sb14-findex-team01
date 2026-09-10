@@ -29,4 +29,10 @@ public interface IndexInfoApi {
     @PatchMapping("/{id}")
     ResponseEntity<IndexInfoDto> update(
             @PathVariable Long id, @RequestBody @Valid IndexInfoUpdateRequest request);
+
+    @Operation(summary = "지수 정보 삭제")
+    @ApiResponse(responseCode = "204", description = "지수 정보 삭제 성공")
+    @ApiResponse(responseCode = "404", description = "삭제할 지수 정보를 찾을 수 없음")
+    @DeleteMapping("/{id}")
+    ResponseEntity<Void> delete(@PathVariable Long id);
 }

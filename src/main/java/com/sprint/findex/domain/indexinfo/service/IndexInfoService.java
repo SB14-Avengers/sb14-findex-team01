@@ -13,4 +13,6 @@ public interface IndexInfoService {
     IndexInfoDto getById(Long id);
 
     IndexInfoDto update(Long id, IndexInfoUpdateRequest request);
+
+    void delete(Long id);
 }

@@ -95,4 +95,14 @@ public class IndexInfoServiceImpl implements IndexInfoService {
 
         return indexInfoMapper.toDto(indexInfo);
     }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        IndexInfo indexInfo =
+                indexInfoRepository
+                        .findById(id)
+                        .orElseThrow(() -> new BusinessException(IndexInfoErrorCode.NOT_FOUND));
+        indexInfoRepository.delete(indexInfo);
+    }
 }
