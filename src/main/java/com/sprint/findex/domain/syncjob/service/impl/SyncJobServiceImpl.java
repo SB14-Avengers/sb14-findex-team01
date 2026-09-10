@@ -103,7 +103,8 @@ public class SyncJobServiceImpl implements SyncJobService {
                                     employedItemsCount,
                                     baseDate,
                                     baseIndex,
-                                    SourceType.OPEN_API));
+                                    SourceType.OPEN_API,
+                                    false));
 
             // TODO: worker 수정
             SyncJob created =
