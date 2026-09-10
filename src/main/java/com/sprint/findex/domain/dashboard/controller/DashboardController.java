@@ -34,7 +34,8 @@ public class DashboardController implements DashboardApi {
     @Override
     public ResponseEntity<List<IndexPerformanceDto>> favoriteSelect(
             PerformancePeriodType periodType) {
-        return null;
+        List<IndexPerformanceDto> favorite = dashboardService.getFavorite(periodType);
+        return ResponseEntity.ok(favorite);
     }
 
     @Override

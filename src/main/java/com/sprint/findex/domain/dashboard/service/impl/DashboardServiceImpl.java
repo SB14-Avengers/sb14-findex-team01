@@ -3,6 +3,7 @@ package com.sprint.findex.domain.dashboard.service.impl;
 import com.sprint.findex.domain.dashboard.dto.response.ChartDataPoint;
 import com.sprint.findex.domain.dashboard.dto.response.IndexChartDto;
 import com.sprint.findex.domain.dashboard.dto.response.IndexInfoSummaryDto;
+import com.sprint.findex.domain.dashboard.dto.response.IndexPerformanceDto;
 import com.sprint.findex.domain.dashboard.mapper.DashboardMapper;
 import com.sprint.findex.domain.dashboard.service.DashboardService;
 import com.sprint.findex.domain.indexdata.entity.IndexData;
@@ -12,6 +13,7 @@ import com.sprint.findex.domain.indexinfo.repository.IndexInfoRepository;
 import com.sprint.findex.global.exception.BusinessException;
 import com.sprint.findex.global.exception.errorcode.DashboardErrorCode;
 import com.sprint.findex.global.type.ChartPeriodType;
+import com.sprint.findex.global.type.PerformancePeriodType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -72,6 +74,46 @@ public class DashboardServiceImpl implements DashboardService {
         List<IndexInfoSummaryDto> dtos = dashboardMapper.toSummaryDto(indexInfoList);
 
         return dtos;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<IndexPerformanceDto> getFavorite(PerformancePeriodType periodType) {
+
+        // 반환할것
+        List<IndexPerformanceDto> dto = new ArrayList<>();
+
+        // 일단 일간, 주간, 월간 보자
+        LocalDate startDate =
+                switch (periodType) {
+                    case DAILY -> LocalDate.now().minusDays(1);
+                    case WEEKLY -> LocalDate.now().minusWeeks(1);
+                    case MONTHLY -> LocalDate.now().minusMonths(1);
+                };
+
+        // 즐겨찾기한거 infoList
+        List<IndexInfo> infoList = indexInfoRepository.findByFavoriteTrue();
+
+        for (IndexInfo indexInfo : infoList) {
+
+            BigDecimal currentPrice = indexDataRepository.findByCurrentPrice(indexInfo.getId());
+            BigDecimal beforePrice =
+                    indexDataRepository.findByBeforePrice(startDate, indexInfo.getId());
+            // 값이 비어있거나, beforePrice가 0이면(0으로 나누는것 방지)
+            if (currentPrice == null
+                    || beforePrice == null
+                    || beforePrice.compareTo(BigDecimal.ZERO) == 0) continue;
+            BigDecimal versus = currentPrice.subtract(beforePrice);
+            BigDecimal fluctuationRate =
+                    versus.divide(beforePrice, 4, RoundingMode.HALF_EVEN)
+                            .multiply(BigDecimal.valueOf(100));
+
+            dto.add(
+                    dashboardMapper.toPerformanceDto(
+                            indexInfo, versus, fluctuationRate, currentPrice, beforePrice));
+        }
+
+        return dto;
     }
 
     // 평균가 계산 메서드, 1. id넣기 2. 5일전 평균가면 5 넣기, 3. startDate 넣기
