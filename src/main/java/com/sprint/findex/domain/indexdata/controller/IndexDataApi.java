@@ -1,6 +1,7 @@
 package com.sprint.findex.domain.indexdata.controller;
 
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataCreateRequest;
+import com.sprint.findex.domain.indexdata.dto.request.IndexDataUpdateRequest;
 import com.sprint.findex.domain.indexdata.dto.response.IndexDataDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,4 +19,9 @@ public interface IndexDataApi {
     @Operation(summary = "지수 데이터 단건 조회")
     @GetMapping("/{indexDataId}")
     ResponseEntity<IndexDataDto> getById(@PathVariable Long indexDataId);
+
+    @Operation(summary = "지수 데이터 수정")
+    @PatchMapping("/{indexDataId}")
+    ResponseEntity<IndexDataDto> update(
+            @PathVariable Long indexDataId, @RequestBody IndexDataUpdateRequest updateRequest);
 }
