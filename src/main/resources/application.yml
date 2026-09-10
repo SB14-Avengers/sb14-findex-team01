@@ -35,7 +35,7 @@ findex:
   # CSV Export는 서버 디스크에 저장하지 않고 응답을 바로 스트리밍한다.
   # (api-docs상 GET /api/index-data/export/csv 응답이 format: binary — 파일로 저장 후 내려주는 방식이 아님.
   #  Railway 같은 PaaS는 파일시스템이 휘발성이라 디스크에 저장하면 재배포/재시작 시 파일이 사라짐)
-  # 공공데이터포털 주가지수 API 엔드포인트 (비밀 아님, 고정값)
+  # 공공데이터포털 주가지수 API 엔드포인트
   openapi:
     uri: https://apis.data.go.kr/1160100/service/GetMarketIndexInfoService/getStockMarketIndex
   error:
@@ -43,5 +43,7 @@ findex:
     # 공통 기본값은 false(숨김) — 배포 안전. 로컬 개발에서만 application-local.yml 에서 true 로 켠다.
     # (로그에는 프로파일과 무관하게 항상 전체 스택트레이스가 남으므로 디버깅에는 지장 없음)
     expose-details: false
+  scheduler:
+    auto-sync-cron: "0 0 6 * * *" # 매일 새벽 6시
 
 # Swagger 경로
