@@ -8,4 +8,6 @@ public interface IndexInfoService {
     IndexInfoDto registerFromUser(IndexInfoCreateRequest request);
 
     IndexInfoDto registerFromOpenApi(IndexInfoOpenApiRegisterRequest request);
+
+    IndexInfoDto getById(Long id);
 }

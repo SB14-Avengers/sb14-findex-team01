@@ -18,4 +18,10 @@ public class IndexInfoController implements IndexInfoApi {
         IndexInfoDto response = indexInfoService.registerFromUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
+
+    @Override
+    public ResponseEntity<IndexInfoDto> getById(Long id) {
+        IndexInfoDto response = indexInfoService.getById(id);
+        return ResponseEntity.ok(response);
+    }
 }
