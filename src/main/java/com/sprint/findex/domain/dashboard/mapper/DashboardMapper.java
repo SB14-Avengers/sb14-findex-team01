@@ -3,6 +3,7 @@ package com.sprint.findex.domain.dashboard.mapper;
 import com.sprint.findex.domain.dashboard.dto.response.ChartDataPoint;
 import com.sprint.findex.domain.dashboard.dto.response.IndexChartDto;
 import com.sprint.findex.domain.dashboard.dto.response.IndexInfoSummaryDto;
+import com.sprint.findex.domain.dashboard.dto.response.IndexPerformanceDto;
 import com.sprint.findex.domain.indexdata.entity.IndexData;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.global.type.ChartPeriodType;
@@ -30,4 +31,14 @@ public interface DashboardMapper {
             List<ChartDataPoint> dataPoints,
             List<ChartDataPoint> ma5DataPoints,
             List<ChartDataPoint> ma20DataPoints);
+
+    @Mapping(source = "indexInfo.id", target = "indexInfoId")
+    @Mapping(source = "indexInfo.indexClassification", target = "indexClassification")
+    @Mapping(source = "indexInfo.indexName", target = "indexName")
+    IndexPerformanceDto toPerformanceDto(
+            IndexInfo indexInfo,
+            BigDecimal versus,
+            BigDecimal fluctuationRate,
+            BigDecimal currentPrice,
+            BigDecimal beforePrice);
 }
