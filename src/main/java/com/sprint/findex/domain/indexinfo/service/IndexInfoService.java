@@ -2,6 +2,7 @@ package com.sprint.findex.domain.indexinfo.service;
 
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoCreateRequest;
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoOpenApiRegisterRequest;
+import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoUpdateRequest;
 import com.sprint.findex.domain.indexinfo.dto.response.IndexInfoDto;
 
 public interface IndexInfoService {
@@ -10,4 +11,6 @@ public interface IndexInfoService {
     IndexInfoDto registerFromOpenApi(IndexInfoOpenApiRegisterRequest request);
 
     IndexInfoDto getById(Long id);
+
+    IndexInfoDto update(Long id, IndexInfoUpdateRequest request);
 }
