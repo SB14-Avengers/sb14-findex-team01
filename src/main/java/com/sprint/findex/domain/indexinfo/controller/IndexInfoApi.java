@@ -28,5 +28,5 @@ public interface IndexInfoApi {
     @ApiResponse(responseCode = "404", description = "수정할 지수 정보를 찾을 수 없음")
     @PatchMapping("/{id}")
     ResponseEntity<IndexInfoDto> update(
-            @PathVariable Long id, @RequestBody IndexInfoUpdateRequest request);
+            @PathVariable Long id, @RequestBody @Valid IndexInfoUpdateRequest request);
 }
