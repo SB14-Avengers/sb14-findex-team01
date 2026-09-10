@@ -13,5 +13,9 @@ spring:
       mode: never
 
 # 테스트에서는 외부 Open API를 실제로 호출하지 않으므로 더미 값만 주입 (Open API 연동 구현 시 @Value 해석용)
-# OPENAPI_URI는 비밀이 아니라 application.yml(findex.openapi.uri)에 고정값으로 있어 여기 없음
 PUBLIC_API_SERVICE_KEY: test-service-key
+
+# 메인 application.yml(findex.openapi.uri)은 테스트 클래스패스에서 로드되지 않아 별도로 더미 값 필요
+findex:
+  openapi:
+    uri: http://localhost/dummy-openapi-uri
