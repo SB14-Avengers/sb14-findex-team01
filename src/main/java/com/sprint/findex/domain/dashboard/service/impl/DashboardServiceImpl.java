@@ -77,7 +77,7 @@ public class DashboardServiceImpl implements DashboardService {
     // 평균가 계산 메서드, 1. id넣기 2. 5일전 평균가면 5 넣기, 3. startDate 넣기
     private List<ChartDataPoint> dataPoint(Long id, int days, LocalDate startDate) {
 
-        // 다섯번째 데이터 까지는 이전 5일자 데이터를 가질 수 없으니까 추가로 -를 해준다.
+        // 예시로, 다섯번째 데이터 까지는 이전 5일자 데이터를 가질 수 없으니까 추가로 -를 해준다.
         // 장이 안열리는 날이 있을수 있으니 여유분으로 3배를 해준다.
         LocalDate date = startDate.minusDays(days * 3L);
 
