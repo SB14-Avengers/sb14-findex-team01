@@ -69,4 +69,20 @@ public class IndexDataServiceImpl implements IndexDataService {
 
         return indexDataDto;
     }
+
+    @Override
+    public IndexDataDto getById(Long indexDataId) {
+        IndexData indexData =
+                indexDataRepository
+                        .findById(indexDataId)
+                        .orElseThrow(() -> new BusinessException(IndexDataErrorCode.NOT_FOUND));
+        IndexDataDto indexDataDto = indexDataMapper.toDto(indexData);
+        log.info(
+                "지수 데이터 단건 조회 완료: indexDataId={}, indexInfoId={}, baseDate={}, sourceType={}",
+                indexDataDto.id(),
+                indexDataDto.indexInfoId(),
+                indexDataDto.baseDate(),
+                indexDataDto.sourceType());
+        return indexDataDto;
+    }
 }
