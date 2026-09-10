@@ -121,6 +121,11 @@ public class SyncJobRepositoryImpl implements SyncJobRepositoryCustom {
                                                 .and(syncJob.id.lt(request.idAfter())));
             }
             case "targetDate" -> {
+                if ("null".equals(request.cursor())) {
+                    yield asc
+                            ? syncJob.targetDate.isNull().and(syncJob.id.gt(request.idAfter()))
+                            : syncJob.targetDate.isNull().and(syncJob.id.lt(request.idAfter()));
+                }
                 LocalDate targetDate = LocalDate.parse(request.cursor());
                 yield asc
                         ? syncJob.targetDate
@@ -129,12 +134,14 @@ public class SyncJobRepositoryImpl implements SyncJobRepositoryCustom {
                                         syncJob.targetDate
                                                 .eq(targetDate)
                                                 .and(syncJob.id.gt(request.idAfter())))
+                                .or(syncJob.targetDate.isNull())
                         : syncJob.targetDate
                                 .lt(targetDate)
                                 .or(
                                         syncJob.targetDate
                                                 .eq(targetDate)
-                                                .and(syncJob.id.lt(request.idAfter())));
+                                                .and(syncJob.id.lt(request.idAfter())))
+                                .or(syncJob.targetDate.isNull());
             }
             default -> throw new BusinessException(SyncJobErrorCode.INVALID_SORT_FIELD);
         };
