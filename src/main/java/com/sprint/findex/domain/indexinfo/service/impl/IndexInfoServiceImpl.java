@@ -3,6 +3,7 @@ package com.sprint.findex.domain.indexinfo.service.impl;
 import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigService;
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoCreateRequest;
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoOpenApiRegisterRequest;
+import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoUpdateRequest;
 import com.sprint.findex.domain.indexinfo.dto.response.IndexInfoDto;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.domain.indexinfo.mapper.IndexInfoMapper;
@@ -75,6 +76,23 @@ public class IndexInfoServiceImpl implements IndexInfoService {
                 indexInfoRepository
                         .findById(id)
                         .orElseThrow(() -> new BusinessException(IndexInfoErrorCode.NOT_FOUND));
+        return indexInfoMapper.toDto(indexInfo);
+    }
+
+    @Override
+    @Transactional
+    public IndexInfoDto update(Long id, IndexInfoUpdateRequest request) {
+        IndexInfo indexInfo =
+                indexInfoRepository
+                        .findById(id)
+                        .orElseThrow(() -> new BusinessException(IndexInfoErrorCode.NOT_FOUND));
+
+        indexInfo.update(
+                request.employedItemsCount(),
+                request.basePointInTime(),
+                request.baseIndex(),
+                request.favorite());
+
         return indexInfoMapper.toDto(indexInfo);
     }
 }
