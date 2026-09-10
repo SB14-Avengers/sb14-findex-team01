@@ -1,5 +1,6 @@
 package com.sprint.findex.domain.syncjob.controller;
 
+import com.sprint.findex.domain.syncjob.dto.request.SyncJobSearchRequest;
 import com.sprint.findex.domain.syncjob.dto.response.SyncJobDto;
 import com.sprint.findex.global.common.CursorPageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,5 +25,5 @@ public interface SyncJobApi {
 
     @Operation(summary = "연동 작업 목록 조회")
     @GetMapping
-    ResponseEntity<CursorPageResponse<SyncJobDto>> findSyncJobs();
+    ResponseEntity<CursorPageResponse<SyncJobDto>> findSyncJobs(SyncJobSearchRequest request);
 }

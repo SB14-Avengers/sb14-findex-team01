@@ -4,16 +4,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.domain.indexinfo.repository.IndexInfoRepository;
+import com.sprint.findex.domain.syncjob.dto.request.SyncJobSearchRequest;
 import com.sprint.findex.domain.syncjob.dto.response.SyncJobDto;
 import com.sprint.findex.domain.syncjob.entity.SyncJob;
 import com.sprint.findex.domain.syncjob.mapper.SyncJobMapper;
 import com.sprint.findex.domain.syncjob.repository.SyncJobRepository;
 import com.sprint.findex.domain.syncjob.service.SyncJobService;
+import com.sprint.findex.global.common.CursorPageResponse;
 import com.sprint.findex.global.exception.BusinessException;
 import com.sprint.findex.global.exception.errorcode.SyncJobErrorCode;
 import com.sprint.findex.global.type.JobResult;
 import com.sprint.findex.global.type.JobType;
 import com.sprint.findex.global.type.SourceType;
+import jakarta.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -28,6 +31,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Service
 @Slf4j
@@ -110,7 +115,11 @@ public class SyncJobServiceImpl implements SyncJobService {
             SyncJob created =
                     syncJobRepository.save(
                             SyncJob.of(
-                                    JobType.INDEX_INFO, indexInfo, null, "kyj", JobResult.SUCCESS));
+                                    JobType.INDEX_INFO,
+                                    indexInfo,
+                                    null,
+                                    clientIpResolver(),
+                                    JobResult.SUCCESS));
 
             syncJobs.add(syncJobMapper.toDto(created));
         }
@@ -122,5 +131,68 @@ public class SyncJobServiceImpl implements SyncJobService {
     public List<SyncJobDto> indexDataSync() {
         // TODO: OpenApi로 교체
         return null;
+    }
+
+    @Override
+    @Transactional
+    public CursorPageResponse<SyncJobDto> find(SyncJobSearchRequest request) {
+        int size = request.size();
+        List<SyncJob> found = syncJobRepository.search(request, size + 1);
+        // 다음 페이지 존재 확인
+        boolean hasNext = found.size() > size;
+        List<SyncJob> content = hasNext ? found.subList(0, size) : found;
+        String nextCursor = null;
+        Long nextIdAfter = null;
+        if (hasNext) {
+            SyncJob last = content.get(content.size() - 1);
+            nextCursor =
+                    "targetDAte".equals(request.sortField())
+                            ? String.valueOf(last.getTargetDate())
+                            : last.getCreatedAt().toString();
+            nextIdAfter = last.getId();
+        }
+
+        return new CursorPageResponse<>(
+                syncJobMapper.toDtoList(content),
+                nextCursor,
+                nextIdAfter,
+                size,
+                syncJobRepository.countBy(request),
+                hasNext);
+    }
+
+    private String clientIpResolver() {
+        String clientIp = "";
+        HttpServletRequest httpServletRequest =
+                ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes())
+                        .getRequest();
+        clientIp = httpServletRequest.getHeader("X-Forwarded-For");
+
+        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+            clientIp = httpServletRequest.getHeader("Proxy-Client-IP");
+        }
+        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+            clientIp = httpServletRequest.getHeader("WL-Proxy-Client-IP");
+        }
+        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+            clientIp = httpServletRequest.getHeader("HTTP_CLIENT_IP");
+        }
+        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+            clientIp = httpServletRequest.getHeader("HTTP_X_FORWARDED_FOR");
+        }
+        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+            clientIp = httpServletRequest.getHeader("X-Real-IP");
+        }
+        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+            clientIp = httpServletRequest.getHeader("X-RealIP");
+        }
+        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+            clientIp = httpServletRequest.getHeader("REMOTE_ADDR");
+        }
+        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+            clientIp = httpServletRequest.getRemoteAddr();
+        }
+
+        return clientIp;
     }
 }
