@@ -1,6 +1,7 @@
 package com.sprint.findex.domain.indexdata.service.impl;
 
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataCreateRequest;
+import com.sprint.findex.domain.indexdata.dto.request.IndexDataUpdateRequest;
 import com.sprint.findex.domain.indexdata.dto.response.IndexDataDto;
 import com.sprint.findex.domain.indexdata.entity.IndexData;
 import com.sprint.findex.domain.indexdata.mapper.IndexDataMapper;
@@ -83,6 +84,44 @@ public class IndexDataServiceImpl implements IndexDataService {
                 indexDataDto.indexInfoId(),
                 indexDataDto.baseDate(),
                 indexDataDto.sourceType());
+        return indexDataDto;
+    }
+
+    @Override
+    @Transactional
+    public IndexDataDto update(Long indexDataId, IndexDataUpdateRequest updateRequest) {
+        IndexData indexData =
+                indexDataRepository
+                        .findById(indexDataId)
+                        .orElseThrow(() -> new BusinessException(IndexDataErrorCode.NOT_FOUND));
+
+        indexData.update(
+                updateRequest.marketPrice(),
+                updateRequest.closingPrice(),
+                updateRequest.highPrice(),
+                updateRequest.lowPrice(),
+                updateRequest.versus(),
+                updateRequest.fluctuationRate(),
+                updateRequest.tradingQuantity(),
+                updateRequest.tradingPrice(),
+                updateRequest.marketTotalAmount());
+
+        IndexDataDto indexDataDto = indexDataMapper.toDto(indexData);
+        log.info(
+                "지수 데이터 수정 완료: indexDataId={}, marketPrice={}, closingPrice={}"
+                        + ", highPrice={}, lowPrice={}, versus={},"
+                        + " fluctuationRate={}, tradingQuantity={}, tradingPrice={},"
+                        + "marketTotalAmount={}",
+                indexDataDto.id(),
+                indexDataDto.marketPrice(),
+                indexDataDto.closingPrice(),
+                indexDataDto.highPrice(),
+                indexDataDto.lowPrice(),
+                indexDataDto.versus(),
+                indexDataDto.fluctuationRate(),
+                indexDataDto.tradingQuantity(),
+                indexDataDto.tradingPrice(),
+                indexDataDto.marketTotalAmount());
         return indexDataDto;
     }
 }
