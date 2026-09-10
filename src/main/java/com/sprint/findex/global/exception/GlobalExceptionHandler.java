@@ -8,6 +8,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -109,6 +110,24 @@ public class GlobalExceptionHandler {
         String details = exposeErrorDetails ? e.getMostSpecificCause().getMessage() : null;
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ErrorResponse.of(HttpStatus.CONFLICT, "요청이 데이터 제약 조건과 충돌합니다.", details));
+    }
+
+    /**
+     * 낙관적 락 충돌 (예: 이미 다른 요청이 먼저 삭제/수정한 엔티티에 뒤늦게 delete/update 시도). {@code @Version} 필드가 없어도,
+     * Hibernate는 엔티티 단위 delete/update가 항상 영향받은 row 1건을 반환하길 기대하는데, 그 사이 다른 트랜잭션이 먼저 지워버리면 0건이 되어 이
+     * 예외가 던져진다. 결과적으로 "이미 없는 리소스"이므로 404로 응답한다.
+     *
+     * <p><b>주의(향후 재검토 필요)</b>: 지금은 어떤 엔티티도 {@code @Version} 필드를 쓰지 않아서, 이 예외는 항상 "동시 삭제 레이스로 row가
+     * 이미 사라진" 경우에만 발생한다(row가 실제로 존재하는데 버전만 어긋나는 진짜 낙관적 락 충돌은 현재 발생 불가능). 나중에 어떤 엔티티가
+     * {@code @Version}을 도입하면, row는 존재하지만 버전만 어긋난 "진짜 충돌" 케이스도 같은 예외로 여기 들어오게 되므로, 그때는 이 핸들러가
+     * 404("이미 삭제됨")로 잘못 응답하지 않도록 원인을 구분하는 로직으로 재검토해야 한다.
+     */
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(
+            ObjectOptimisticLockingFailureException e) {
+        log.warn("[ObjectOptimisticLockingFailureException] {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse.of(HttpStatus.NOT_FOUND, "요청한 리소스가 이미 삭제되었습니다.", null));
     }
 
     @ExceptionHandler(Exception.class)
