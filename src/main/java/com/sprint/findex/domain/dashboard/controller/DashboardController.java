@@ -9,6 +9,7 @@ import com.sprint.findex.global.type.ChartPeriodType;
 import com.sprint.findex.global.type.PerformancePeriodType;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -18,24 +19,27 @@ public class DashboardController implements DashboardApi {
     private final DashboardService dashboardService;
 
     @Override
-    public IndexChartDto chartSelect(Long id, ChartPeriodType periodType) {
-        return dashboardService.getChart(id, periodType);
+    public ResponseEntity<IndexChartDto> chartSelect(Long id, ChartPeriodType periodType) {
+        IndexChartDto chart = dashboardService.getChart(id, periodType);
+        return ResponseEntity.ok(chart);
     }
 
     // 살려줘
     @Override
-    public List<RankedIndexPerformanceDto> rankSelect(
+    public ResponseEntity<List<RankedIndexPerformanceDto>> rankSelect(
             Long indexInfoId, PerformancePeriodType periodType, Integer limit) {
         return null;
     }
 
     @Override
-    public List<IndexPerformanceDto> favoriteSelect(PerformancePeriodType periodType) {
+    public ResponseEntity<List<IndexPerformanceDto>> favoriteSelect(
+            PerformancePeriodType periodType) {
         return null;
     }
 
     @Override
-    public List<IndexInfoSummaryDto> summaries() {
-        return dashboardService.summaries();
+    public ResponseEntity<List<IndexInfoSummaryDto>> summaries() {
+        List<IndexInfoSummaryDto> summaries = dashboardService.summaries();
+        return ResponseEntity.ok(summaries);
     }
 }
