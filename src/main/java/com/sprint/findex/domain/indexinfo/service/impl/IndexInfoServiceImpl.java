@@ -68,4 +68,13 @@ public class IndexInfoServiceImpl implements IndexInfoService {
         autoSyncConfigService.initializeFor(saved);
         return indexInfoMapper.toDto(saved);
     }
+
+    @Override
+    public IndexInfoDto getById(Long id) {
+        IndexInfo indexInfo =
+                indexInfoRepository
+                        .findById(id)
+                        .orElseThrow(() -> new BusinessException(IndexInfoErrorCode.NOT_FOUND));
+        return indexInfoMapper.toDto(indexInfo);
+    }
 }
