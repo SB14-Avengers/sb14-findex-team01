@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -134,7 +135,7 @@ public class SyncJobServiceImpl implements SyncJobService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public CursorPageResponse<SyncJobDto> find(SyncJobSearchRequest request) {
         int size = request.size();
         List<SyncJob> found = syncJobRepository.search(request, size + 1);
@@ -146,7 +147,7 @@ public class SyncJobServiceImpl implements SyncJobService {
         if (hasNext) {
             SyncJob last = content.get(content.size() - 1);
             nextCursor =
-                    "targetDAte".equals(request.sortField())
+                    "targetDate".equals(request.sortField())
                             ? String.valueOf(last.getTargetDate())
                             : last.getCreatedAt().toString();
             nextIdAfter = last.getId();
@@ -162,11 +163,13 @@ public class SyncJobServiceImpl implements SyncJobService {
     }
 
     private String clientIpResolver() {
-        String clientIp = "";
-        HttpServletRequest httpServletRequest =
-                ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes())
-                        .getRequest();
-        clientIp = httpServletRequest.getHeader("X-Forwarded-For");
+        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+        if (!(attributes instanceof ServletRequestAttributes servletAttributes)) {
+            return "system";
+        }
+        HttpServletRequest httpServletRequest = servletAttributes.getRequest();
+
+        String clientIp = httpServletRequest.getHeader("X-Forwarded-For");
 
         if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("Proxy-Client-IP");
