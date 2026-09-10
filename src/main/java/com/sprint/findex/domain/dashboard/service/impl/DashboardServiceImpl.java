@@ -3,6 +3,7 @@ package com.sprint.findex.domain.dashboard.service.impl;
 import com.sprint.findex.domain.dashboard.dto.response.ChartDataPoint;
 import com.sprint.findex.domain.dashboard.dto.response.IndexChartDto;
 import com.sprint.findex.domain.dashboard.dto.response.IndexInfoSummaryDto;
+import com.sprint.findex.domain.dashboard.mapper.DashboardMapper;
 import com.sprint.findex.domain.dashboard.service.DashboardService;
 import com.sprint.findex.domain.indexdata.entity.IndexData;
 import com.sprint.findex.domain.indexdata.repository.IndexDataRepository;
@@ -26,6 +27,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     private final IndexInfoRepository indexInfoRepository;
     private final IndexDataRepository indexDataRepository;
+    private final DashboardMapper dashboardMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -50,13 +52,14 @@ public class DashboardServiceImpl implements DashboardService {
 
         List<ChartDataPoint> dataPoints =
                 indexDataRepository.findChartData(id, startDate).stream()
-                        .map(ChartDataPoint::from)
+                        .map(dashboardMapper::toChartDataDto)
                         .toList();
         List<ChartDataPoint> ma5DatePoints = dataPoint(id, 5, startDate);
         List<ChartDataPoint> ma20DataPoints = dataPoint(id, 20, startDate);
 
         IndexChartDto dto =
-                IndexChartDto.of(indexInfo, periodType, dataPoints, ma5DatePoints, ma20DataPoints);
+                dashboardMapper.toIndexChartDto(
+                        indexInfo, periodType, dataPoints, ma5DatePoints, ma20DataPoints);
 
         return dto;
     }
@@ -66,8 +69,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         List<IndexInfo> indexInfoList = indexInfoRepository.findAll();
 
-        List<IndexInfoSummaryDto> dtos =
-                indexInfoList.stream().map(IndexInfoSummaryDto::from).toList();
+        List<IndexInfoSummaryDto> dtos = dashboardMapper.toSummaryDto(indexInfoList);
 
         return dtos;
     }
@@ -106,7 +108,9 @@ public class DashboardServiceImpl implements DashboardService {
                     maDateSum.divide(BigDecimal.valueOf(days), 2, RoundingMode.HALF_EVEN);
 
             // 더하기
-            dataPoints.add(ChartDataPoint.of(indexDataList.get(i).getBaseDate(), maDateAvg));
+            dataPoints.add(
+                    dashboardMapper.toMovingAverageDto(
+                            indexDataList.get(i).getBaseDate(), maDateAvg));
         }
 
         return dataPoints;
