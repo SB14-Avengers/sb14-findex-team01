@@ -10,4 +10,9 @@ public record ChartDataPoint(LocalDate date, BigDecimal value) {
     public static ChartDataPoint from(IndexData data) {
         return new ChartDataPoint(data.getBaseDate(), data.getClosingPrice());
     }
+
+    // 평균값 반환
+    public static ChartDataPoint of(LocalDate date, BigDecimal value) {
+        return new ChartDataPoint(date, value);
+    }
 }
