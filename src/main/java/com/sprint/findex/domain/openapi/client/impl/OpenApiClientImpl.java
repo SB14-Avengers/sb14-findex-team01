@@ -32,7 +32,6 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriBuilder;
 import org.springframework.web.util.UriUtils;
 
@@ -123,11 +122,6 @@ public class OpenApiClientImpl implements OpenApiClient {
                         "Open API 수집 건수가 totalCount를 초과했습니다.");
             }
 
-            if (pageNo >= expectedTotal) {
-                throw fail(
-                        OpenApiErrorKind.PAGINATION_INCONSISTENT,
-                        "Open API 페이지가 더 있는데 수집이 끝나지 않았습니다.");
-            }
             pageNo++;
         }
 
@@ -322,16 +316,8 @@ public class OpenApiClientImpl implements OpenApiClient {
     }
 
     private static OpenApiClientException translateTransport(RuntimeException ex) {
-        if (ex instanceof OpenApiClientException clientEx) {
-            return clientEx;
-        }
         if (isTimeout(ex)) {
             return fail(OpenApiErrorKind.TIMEOUT, "Open API 호출이 시간 초과되었습니다.");
-        }
-        if (ex instanceof RestClientResponseException responseEx) {
-            return fail(
-                    OpenApiErrorKind.HTTP_ERROR,
-                    "Open API HTTP " + responseEx.getStatusCode().value());
         }
         if (isNetwork(ex)) {
             return fail(OpenApiErrorKind.NETWORK_ERROR, "Open API 네트워크 오류가 발생했습니다.");
