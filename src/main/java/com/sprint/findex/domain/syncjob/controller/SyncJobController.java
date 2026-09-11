@@ -5,6 +5,7 @@ import com.sprint.findex.domain.syncjob.dto.request.SyncJobSearchRequest;
 import com.sprint.findex.domain.syncjob.dto.response.SyncJobDto;
 import com.sprint.findex.domain.syncjob.service.SyncJobService;
 import com.sprint.findex.global.common.CursorPageResponse;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
@@ -25,7 +26,7 @@ public class SyncJobController implements SyncJobApi {
 
     @Override
     public ResponseEntity<List<SyncJobDto>> indexDataSync(
-            @RequestBody SyncJobCreateRequest request) {
+            @Valid @RequestBody SyncJobCreateRequest request) {
         List<SyncJobDto> syncJobs = syncJobService.indexDataSync(request);
         return ResponseEntity.accepted().body(syncJobs);
     }
