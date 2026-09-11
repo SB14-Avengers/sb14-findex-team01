@@ -1,5 +1,6 @@
 package com.sprint.findex.domain.syncjob.controller;
 
+import com.sprint.findex.domain.syncjob.dto.request.SyncJobCreateRequest;
 import com.sprint.findex.domain.syncjob.dto.request.SyncJobSearchRequest;
 import com.sprint.findex.domain.syncjob.dto.response.SyncJobDto;
 import com.sprint.findex.global.common.CursorPageResponse;
@@ -21,7 +22,7 @@ public interface SyncJobApi {
 
     @Operation(summary = "지수 데이터 연동")
     @PostMapping(value = "/index-data")
-    ResponseEntity<List<SyncJobDto>> indexDataSync();
+    ResponseEntity<List<SyncJobDto>> indexDataSync(SyncJobCreateRequest request);
 
     @Operation(summary = "연동 작업 목록 조회")
     @GetMapping

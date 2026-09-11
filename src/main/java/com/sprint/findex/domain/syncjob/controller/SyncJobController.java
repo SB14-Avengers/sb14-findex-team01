@@ -1,5 +1,6 @@
 package com.sprint.findex.domain.syncjob.controller;
 
+import com.sprint.findex.domain.syncjob.dto.request.SyncJobCreateRequest;
 import com.sprint.findex.domain.syncjob.dto.request.SyncJobSearchRequest;
 import com.sprint.findex.domain.syncjob.dto.response.SyncJobDto;
 import com.sprint.findex.domain.syncjob.service.SyncJobService;
@@ -7,8 +8,8 @@ import com.sprint.findex.global.common.CursorPageResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -23,10 +24,10 @@ public class SyncJobController implements SyncJobApi {
     }
 
     @Override
-    public ResponseEntity<List<SyncJobDto>> indexDataSync() {
-        // TODO: 12번 이슈 진행 예정
-        List<SyncJobDto> syncJobs = syncJobService.indexDataSync();
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+    public ResponseEntity<List<SyncJobDto>> indexDataSync(
+            @RequestBody SyncJobCreateRequest request) {
+        List<SyncJobDto> syncJobs = syncJobService.indexDataSync(request);
+        return ResponseEntity.accepted().body(syncJobs);
     }
 
     @Override

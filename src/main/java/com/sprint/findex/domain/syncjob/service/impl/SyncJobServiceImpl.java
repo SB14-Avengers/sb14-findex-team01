@@ -2,8 +2,11 @@ package com.sprint.findex.domain.syncjob.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sprint.findex.domain.indexdata.entity.IndexData;
+import com.sprint.findex.domain.indexdata.repository.IndexDataRepository;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.domain.indexinfo.repository.IndexInfoRepository;
+import com.sprint.findex.domain.syncjob.dto.request.SyncJobCreateRequest;
 import com.sprint.findex.domain.syncjob.dto.request.SyncJobSearchRequest;
 import com.sprint.findex.domain.syncjob.dto.response.SyncJobDto;
 import com.sprint.findex.domain.syncjob.entity.SyncJob;
@@ -12,6 +15,7 @@ import com.sprint.findex.domain.syncjob.repository.SyncJobRepository;
 import com.sprint.findex.domain.syncjob.service.SyncJobService;
 import com.sprint.findex.global.common.CursorPageResponse;
 import com.sprint.findex.global.exception.BusinessException;
+import com.sprint.findex.global.exception.errorcode.IndexInfoErrorCode;
 import com.sprint.findex.global.exception.errorcode.SyncJobErrorCode;
 import com.sprint.findex.global.type.JobResult;
 import com.sprint.findex.global.type.JobType;
@@ -43,6 +47,7 @@ public class SyncJobServiceImpl implements SyncJobService {
     private final IndexInfoRepository indexInfoRepository;
     private final SyncJobRepository syncJobRepository;
     private final SyncJobMapper syncJobMapper;
+    private final IndexDataRepository indexDataRepository;
 
     // TODO: OpenApi 만들어지기 전에 임시 사용 코드
     @Value("${findex.openapi.uri}")
@@ -74,6 +79,14 @@ public class SyncJobServiceImpl implements SyncJobService {
             log.error("[OpenApi] 호출 실패 basDt={}", baseDate, e);
             throw new BusinessException(SyncJobErrorCode.OPEN_API_CALL_FAILED);
         }
+    }
+
+    private BigDecimal decimal(JsonNode item, String field) {
+        return new BigDecimal(item.get(field).asText()); // decimalValue()는 문자열 노드에서 0을 반환
+    }
+
+    private Long number(JsonNode item, String field) {
+        return Long.valueOf(item.get(field).asText());
     }
 
     @Override
@@ -130,9 +143,85 @@ public class SyncJobServiceImpl implements SyncJobService {
     }
 
     @Override
-    public List<SyncJobDto> indexDataSync() {
+    @Transactional
+    public List<SyncJobDto> indexDataSync(SyncJobCreateRequest request) {
         // TODO: OpenApi로 교체
-        return null;
+        // 선택 안 할 경우(null)이면 전체 조회
+        List<SyncJobDto> syncJobDtoList = new ArrayList<>();
+        String worker = clientIpResolver();
+        List<Long> indexInfoIds = request.indexInfoIds();
+
+        if (indexInfoIds.get(0) == -1) {
+            LocalDate baseDateFrom = request.baseDateFrom();
+            LocalDate baseDateTo = request.baseDateTo();
+
+            JsonNode items = fetch(baseDateTo);
+
+            for (JsonNode item : items) {
+                String indexClassification = item.path("idxCsf").asText();
+                String indexName = item.path("idxNm").asText();
+                BigDecimal marketPrice = decimal(item, "mkp");
+                BigDecimal closingPrice = decimal(item, "clpr");
+                BigDecimal highPrice = decimal(item, "hipr");
+                BigDecimal lowPrice = decimal(item, "lopr");
+                BigDecimal versus = decimal(item, "vs");
+                BigDecimal fluctuationRate = decimal(item, "fltRt");
+                Long tradingQuantity = number(item, "trqu");
+                Long tradingPrice = number(item, "trPrc");
+                Long marketTotalAmount = number(item, "lstgMrktTotAmt");
+
+                IndexInfo indexInfo =
+                        indexInfoRepository.findByIndexClassificationAndIndexName(
+                                indexClassification, indexName);
+                if (indexInfo == null) {
+                    continue;
+                }
+
+                IndexData indexData =
+                        IndexData.of(
+                                indexInfo,
+                                baseDateTo,
+                                SourceType.OPEN_API,
+                                marketPrice,
+                                closingPrice,
+                                highPrice,
+                                lowPrice,
+                                versus,
+                                fluctuationRate,
+                                tradingQuantity,
+                                tradingPrice,
+                                marketTotalAmount);
+
+                indexDataRepository.save(indexData);
+
+                SyncJob created =
+                        syncJobRepository.save(
+                                SyncJob.of(
+                                        JobType.INDEX_DATA,
+                                        indexInfo,
+                                        null,
+                                        worker,
+                                        JobResult.SUCCESS));
+
+                syncJobDtoList.add(syncJobMapper.toDto(created));
+            }
+            return syncJobDtoList;
+        }
+
+        List<IndexInfo> indexInfoList =
+                indexInfoIds.stream()
+                        .map(
+                                indexInfoId ->
+                                        indexInfoRepository
+                                                .findById(indexInfoId)
+                                                .orElseThrow(
+                                                        () ->
+                                                                new BusinessException(
+                                                                        IndexInfoErrorCode
+                                                                                .NOT_FOUND)))
+                        .toList();
+
+        return syncJobDtoList;
     }
 
     @Override
