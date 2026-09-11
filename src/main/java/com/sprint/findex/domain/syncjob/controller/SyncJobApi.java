@@ -6,10 +6,13 @@ import com.sprint.findex.domain.syncjob.dto.response.SyncJobDto;
 import com.sprint.findex.global.common.CursorPageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.List;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Tag(name = "연동 작업 API", description = "연동 작업 관리 API")
@@ -22,9 +25,11 @@ public interface SyncJobApi {
 
     @Operation(summary = "지수 데이터 연동")
     @PostMapping(value = "/index-data")
-    ResponseEntity<List<SyncJobDto>> indexDataSync(SyncJobCreateRequest request);
+    ResponseEntity<List<SyncJobDto>> indexDataSync(
+            @Valid @RequestBody SyncJobCreateRequest request);
 
     @Operation(summary = "연동 작업 목록 조회")
     @GetMapping
-    ResponseEntity<CursorPageResponse<SyncJobDto>> findSyncJobs(SyncJobSearchRequest request);
+    ResponseEntity<CursorPageResponse<SyncJobDto>> findSyncJobs(
+            @ParameterObject SyncJobSearchRequest request);
 }

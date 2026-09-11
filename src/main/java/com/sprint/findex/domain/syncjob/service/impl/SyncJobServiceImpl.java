@@ -275,7 +275,7 @@ public class SyncJobServiceImpl implements SyncJobService {
                 indexDataRepository.findByIndexInfoIdAndBaseDate(indexInfo.getId(), item.basDt());
         JobResult result = JobResult.SUCCESS;
 
-        if (existing.isPresent()) {
+        if (existing.isPresent() && hasAllPrices(item)) {
             existing.get()
                     .update(
                             item.mkp(),
