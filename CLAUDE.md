@@ -68,7 +68,10 @@ docker compose up        # compose.yaml 기반 Postgres 15 컨테이너
 - **Spring Boot 3.5.16** (Spring Framework 6.x) — `build.gradle` 플러그인 `org.springframework.boot` 3.5.16 기준.
   표준 스타터 사용: `spring-boot-starter-web`, `spring-boot-starter-validation`, `spring-boot-starter-data-jpa`,
   `spring-boot-starter-aop`, `spring-boot-starter-actuator`
-- **Spring WebFlux** (`spring-boot-starter-webflux`) — Open API 연동용 `WebClient` 사용 목적으로 추가. `domain/openapi/client/`에 `OpenApiClient` 자리는 잡아놨지만 실제 `WebClient` 호출 로직은 아직 미구현
+- **Spring `RestClient`** (`spring-web`, Spring 6.1+ — 별도 스타터 없음) — Open API 연동용 동기 HTTP 클라이언트.
+  `domain/openapi/config/OpenApiRestClientConfig`에서 `openApiRestClient` 빈을 만들고, 요청 실행은 JDK 내장 `java.net.http.HttpClient`에 맡긴다.
+  **WebFlux(`spring-boot-starter-webflux`)는 제거했다** — 호출이 전부 동기(`block()`)라 reactor-netty 이벤트 루프가 하는 일이 없었고,
+  Netty 예외를 벗겨내는 코드와 타임아웃 노브 3종이 그 때문에 생겼다. 자동 연동 배치의 비동기는 `@Scheduled`/`@Async`(스레드 풀)라 리액티브가 필요 없다
 - **Gradle** (Groovy DSL) + `io.spring.dependency-management` 1.1.7 (BOM 기반 버전 관리)
 - **Spring Data JPA + PostgreSQL 15** (Docker Compose로 로컬 실행)
 - **H2** — 테스트/로컬 콘솔 전용 (`runtimeOnly` 스코프)
@@ -128,7 +131,10 @@ src/main/java/com/sprint/findex/
 │   │   └── controller/ service/(impl/)  dto/response/
 │   │       (ChartDataPoint, IndexInfoSummaryDto, IndexChartDto, IndexPerformanceDto, RankedIndexPerformanceDto)
 │   └── openapi/       # Open API 연동 (entity/controller/repository 없음 — 자체 DB/REST 없이 연동작업이 소비하는 내부 클라이언트)
-│       └── client/(impl/)  # OpenApiClient — 연동작업(syncjob) 담당자와 인터페이스 계약 합의 후 구현
+│       ├── client/(impl/)  # OpenApiClient / OpenApiClientImpl — RestClient로 페이지 반복 수집 (#13 구현 완료)
+│       ├── config/         # OpenApiProperties, OpenApiRestClientConfig(openApiRestClient 빈)
+│       ├── dto/            # request(StockMarketIndexQuery) / response(#14) / jackson(역직렬화기)
+│       └── exception/      # OpenApiClientException, OpenApiErrorKind(실패 8종)
 ```
 
 **패키지 규칙**: 도메인별로 폴더를 나누고(`domain/{도메인명}`), 그 안에서 `entity/controller/service/repository/mapper`를 다시 하위 패키지로 나눈다. Service/Repository는 인터페이스(`service/`, `repository/`)와 구현체(`service/impl/`, `repository/impl/`)를 분리한다. 여러 도메인이 공통으로 쓰는 코드만 `global/`에 둔다.
@@ -139,7 +145,8 @@ src/main/java/com/sprint/findex/
 - 없는 것(과거 스캐폴딩에서 삭제됨, 필요 시 재도입): `global/aop/TimeTraceAspect`, `global/config/openapi/OpenApiConfig`
   - `SchedulingConfig` 클래스는 없지만 `@EnableScheduling`은 `FindexApplication`에 이미 적용돼있음 — 위 "핵심 기술 스택" Spring Scheduler 항목 참고
   - `global/config/QueryDSLConfig`(`JPAQueryFactory` 빈)는 있음 — 위 "핵심 기술 스택" QueryDSL 항목 참고
-  - `OpenApiClient`는 `external/` 대신 `domain/openapi/client/`(+`impl/`)에 빈 스텁으로 있음 — 6명/6도메인 매칭을 위해 연동작업(syncjob)에서 도메인으로 분리(9/8 팀 회의)
+  - `OpenApiClient`는 `external/` 대신 `domain/openapi/client/`(+`impl/`)에 있음 — 6명/6도메인 매칭을 위해 연동작업(syncjob)에서 도메인으로 분리(9/8 팀 회의).
+    #13/#14로 실제 구현 완료(호출 계약은 `OpenApiClient` javadoc) — 다만 서비스 키가 없어 **실제 공공데이터포털 호출은 아직 미검증**
 
 ### 엔티티 설계 패턴
 - 모든 엔티티는 `BaseEntity`(Long PK + `createdAt`/`updatedAt`, 타입 `Instant`)를 상속 — 원래 `BaseUpdatableEntity`로 분리돼있었으나, api-docs 응답 어디에도 생성/수정일시 필드가 없어서 구분 실익이 없다고 판단해 하나로 통합
