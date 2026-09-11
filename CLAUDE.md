@@ -306,6 +306,7 @@ config/intellij/codeStyles/codeStyleConfig.xml # 인텔리제이 코드 스타�
   - `config/intellij/codeStyles/`(디렉토리 전체 — `codeStyleConfig.xml` + `Project.xml`)를 `.idea/codeStyles/`에 복사 (`installIntellijCodeStyle` 태스크) — `.idea/`는 전체 gitignore 대상이라 `config/`에 원본을 따로 두고 복사하는 방식. `codeStyleConfig.xml`은 인텔리제이 내장 스킴이 아니라 같은 폴더의 `Project.xml`(커스텀 4칸 들여쓰기 규칙)을 가리키도록 설정돼있음 — Spotless(`googleJavaFormat().aosp()`)랑 들여쓰기 칸수를 맞춘 거라 코딩 중 실시간 표시가 커밋 시 자동 포맷 결과랑 크게 어긋나지 않음
   - 수동으로 다시 설치하고 싶으면 `./gradlew installGitHooks` / `installGitMessageTemplate` / `installIntellijCodeStyle` 각각 재실행 가능
 - **AI 리뷰**: `.coderabbit.yaml` — CodeRabbit 자동 리뷰(한국어, assertive 프로파일). `.junie/` — JetBrains Junie 설정
+  - **Claude Code로 이 저장소에서 실행되는 모든 작업(대화형 세션, `@claude` 멘션 리뷰, PR 자동 리뷰 `claude-code-review.yml` 전부)은 코멘트·리뷰·설명을 한국어로 작성한다.** 클래스명·변수명·예외 이름 같은 코드 식별자는 원문 그대로 두되, 그 외 문장에 영어를 섞지 않는다. (`#77`: 자동 리뷰가 간헐적으로 영어로 나오는 문제 — 워크플로 프롬프트 강화와 별개로, 여기 명시해서 이중으로 보강)
 
 ## 테스트
 - 현재 `FindexApplicationTests.java`(컨텍스트 로드 확인)만 존재
