@@ -74,3 +74,4 @@ data.sql
 ### Open API 작업 문서 (로컬 전용) ###
 docs/openapi/*
 !docs/openapi/response-mapping.md
+
