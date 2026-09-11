@@ -70,3 +70,6 @@ Desktop.ini
 ## 더미 데이터
 application-data.yml
 data.sql
+
+### Open API 작업 문서 (로컬 전용) ###
+docs/openapi/
