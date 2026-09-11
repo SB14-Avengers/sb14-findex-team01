@@ -105,8 +105,8 @@ public class DashboardServiceImpl implements DashboardService {
                     || beforePrice.compareTo(BigDecimal.ZERO) == 0) continue;
             BigDecimal versus = currentPrice.subtract(beforePrice);
             BigDecimal fluctuationRate =
-                    versus.divide(beforePrice, 4, RoundingMode.HALF_EVEN)
-                            .multiply(BigDecimal.valueOf(100));
+                    versus.multiply(BigDecimal.valueOf(100))
+                            .divide(beforePrice, 4, RoundingMode.HALF_EVEN);
 
             dto.add(
                     dashboardMapper.toPerformanceDto(
