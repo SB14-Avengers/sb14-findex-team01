@@ -20,9 +20,10 @@ public interface IndexDataRepository extends JpaRepository<IndexData, Long> {
     @Query(
             "select d from IndexData d \n"
                     + "where d.indexInfo.id = :indexInfoId \n"
-                    + "and d.baseDate >= :baseDate \n"
+                    + "and d.baseDate >= :startDate \n"
                     + "order by d.baseDate asc")
-    List<IndexData> findChartData(@Param("indexInfoId") Long id, @Param("baseDate") LocalDate data);
+    List<IndexData> findChartData(
+            @Param("indexInfoId") Long id, @Param("startDate") LocalDate data);
 
     List<IndexData> findByIndexInfoId(@Param("indexInfo") Long indexInfoId);
 
@@ -36,7 +37,7 @@ public interface IndexDataRepository extends JpaRepository<IndexData, Long> {
     @Query(
             "select d.closingPrice from IndexData d \n"
                     + "where d.indexInfo.id = :indexInfoId \n"
-                    + "and d.baseDate <= :startDate \n"
+                    + "and d.baseDate < :startDate \n"
                     + "order by d.baseDate Desc \n"
                     + "limit 1")
     BigDecimal findByBeforePrice(
