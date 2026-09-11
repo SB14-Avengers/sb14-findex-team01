@@ -6,6 +6,9 @@ import com.sprint.findex.domain.indexdata.entity.IndexData;
 import com.sprint.findex.domain.indexdata.repository.IndexDataRepository;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.domain.indexinfo.repository.IndexInfoRepository;
+import com.sprint.findex.domain.openapi.client.OpenApiClient;
+import com.sprint.findex.domain.openapi.dto.request.StockMarketIndexQuery;
+import com.sprint.findex.domain.openapi.dto.response.StockMarketIndexItem;
 import com.sprint.findex.domain.syncjob.dto.request.SyncJobCreateRequest;
 import com.sprint.findex.domain.syncjob.dto.request.SyncJobSearchRequest;
 import com.sprint.findex.domain.syncjob.dto.response.SyncJobDto;
@@ -27,8 +30,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +48,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @RequiredArgsConstructor
 public class SyncJobServiceImpl implements SyncJobService {
     private static final DateTimeFormatter BAS_DT = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private final OpenApiClient openApiClient;
     private final IndexInfoRepository indexInfoRepository;
     private final SyncJobRepository syncJobRepository;
     private final SyncJobMapper syncJobMapper;
@@ -79,14 +84,6 @@ public class SyncJobServiceImpl implements SyncJobService {
             log.error("[OpenApi] 호출 실패 basDt={}", baseDate, e);
             throw new BusinessException(SyncJobErrorCode.OPEN_API_CALL_FAILED);
         }
-    }
-
-    private BigDecimal decimal(JsonNode item, String field) {
-        return new BigDecimal(item.get(field).asText()); // decimalValue()는 문자열 노드에서 0을 반환
-    }
-
-    private Long number(JsonNode item, String field) {
-        return Long.valueOf(item.get(field).asText());
     }
 
     @Override
@@ -145,82 +142,56 @@ public class SyncJobServiceImpl implements SyncJobService {
     @Override
     @Transactional
     public List<SyncJobDto> indexDataSync(SyncJobCreateRequest request) {
-        // TODO: OpenApi로 교체
-        // 선택 안 할 경우(null)이면 전체 조회
         List<SyncJobDto> syncJobDtoList = new ArrayList<>();
         String worker = clientIpResolver();
         List<Long> indexInfoIds = request.indexInfoIds();
+        LocalDate baseDateFrom = request.baseDateFrom();
+        LocalDate baseDateTo = request.baseDateTo();
 
-        if (indexInfoIds.get(0) == -1) {
-            LocalDate baseDateFrom = request.baseDateFrom();
-            LocalDate baseDateTo = request.baseDateTo();
+        // 전체 지수 조회 시 id에 -1 값으로 들어옴
+        if (indexInfoIds.contains(-1L)) {
+            StockMarketIndexQuery query =
+                    new StockMarketIndexQuery(null, null, baseDateFrom, baseDateTo);
 
-            JsonNode items = fetch(baseDateTo);
+            Map<String, IndexInfo> indexInfoMap =
+                    indexInfoRepository.findAll().stream()
+                            .collect(
+                                    Collectors.toMap(
+                                            info ->
+                                                    indexKey(
+                                                            info.getIndexClassification(),
+                                                            info.getIndexName()),
+                                            info -> info));
 
-            for (JsonNode item : items) {
-                String indexClassification = item.path("idxCsf").asText();
-                String indexName = item.path("idxNm").asText();
-                BigDecimal marketPrice = decimal(item, "mkp");
-                BigDecimal closingPrice = decimal(item, "clpr");
-                BigDecimal highPrice = decimal(item, "hipr");
-                BigDecimal lowPrice = decimal(item, "lopr");
-                BigDecimal versus = decimal(item, "vs");
-                BigDecimal fluctuationRate = decimal(item, "fltRt");
-                Long tradingQuantity = number(item, "trqu");
-                Long tradingPrice = number(item, "trPrc");
-                Long marketTotalAmount = number(item, "lstgMrktTotAmt");
+            List<StockMarketIndexItem> items = openApiClient.fetchStockMarketIndex(query);
 
-                IndexInfo indexInfo =
-                        indexInfoRepository.findByIndexClassificationAndIndexName(
-                                indexClassification, indexName);
+            for (StockMarketIndexItem item : items) {
+                IndexInfo indexInfo = indexInfoMap.get(indexKey(item.idxCsf(), item.idxNm()));
+
                 if (indexInfo == null) {
                     continue;
                 }
-
-                IndexData indexData =
-                        IndexData.of(
-                                indexInfo,
-                                baseDateTo,
-                                SourceType.OPEN_API,
-                                marketPrice,
-                                closingPrice,
-                                highPrice,
-                                lowPrice,
-                                versus,
-                                fluctuationRate,
-                                tradingQuantity,
-                                tradingPrice,
-                                marketTotalAmount);
-
-                indexDataRepository.save(indexData);
-
-                SyncJob created =
-                        syncJobRepository.save(
-                                SyncJob.of(
-                                        JobType.INDEX_DATA,
-                                        indexInfo,
-                                        null,
-                                        worker,
-                                        JobResult.SUCCESS));
-
-                syncJobDtoList.add(syncJobMapper.toDto(created));
+                indexDataCreate(syncJobDtoList, worker, indexInfo, item);
             }
             return syncJobDtoList;
         }
 
-        List<IndexInfo> indexInfoList =
-                indexInfoIds.stream()
-                        .map(
-                                indexInfoId ->
-                                        indexInfoRepository
-                                                .findById(indexInfoId)
-                                                .orElseThrow(
-                                                        () ->
-                                                                new BusinessException(
-                                                                        IndexInfoErrorCode
-                                                                                .NOT_FOUND)))
-                        .toList();
+        IndexInfo indexInfo =
+                indexInfoRepository
+                        .findById(indexInfoIds.get(0))
+                        .orElseThrow(() -> new BusinessException(IndexInfoErrorCode.NOT_FOUND));
 
+        StockMarketIndexQuery query =
+                new StockMarketIndexQuery(indexInfo.getIndexName(), null, baseDateFrom, baseDateTo);
+        List<StockMarketIndexItem> items = openApiClient.fetchStockMarketIndex(query);
+        String indexClassification = indexInfo.getIndexClassification();
+
+        for (StockMarketIndexItem item : items) {
+            if (!indexClassification.equals(item.idxCsf())) {
+                continue;
+            }
+            indexDataCreate(syncJobDtoList, worker, indexInfo, item);
+        }
         return syncJobDtoList;
     }
 
@@ -263,28 +234,28 @@ public class SyncJobServiceImpl implements SyncJobService {
 
         String clientIp = httpServletRequest.getHeader("X-Forwarded-For");
 
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("Proxy-Client-IP");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("WL-Proxy-Client-IP");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("HTTP_CLIENT_IP");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("HTTP_X_FORWARDED_FOR");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("X-Real-IP");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("X-RealIP");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("REMOTE_ADDR");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getRemoteAddr();
         }
 
@@ -293,5 +264,73 @@ public class SyncJobServiceImpl implements SyncJobService {
         }
 
         return clientIp;
+    }
+
+    private void indexDataCreate(
+            List<SyncJobDto> syncJobDtoList,
+            String worker,
+            IndexInfo indexInfo,
+            StockMarketIndexItem item) {
+        Optional<IndexData> existing =
+                indexDataRepository.findByIndexInfoIdAndBaseDate(indexInfo.getId(), item.basDt());
+        JobResult result = JobResult.SUCCESS;
+
+        if (existing.isPresent()) {
+            existing.get()
+                    .update(
+                            item.mkp(),
+                            item.clpr(),
+                            item.hipr(),
+                            item.lopr(),
+                            item.vs(),
+                            item.fltRt(),
+                            item.trqu(),
+                            item.trPrc(),
+                            item.lstgMrktTotAmt());
+        } else if (hasAllPrices(item)) {
+            IndexData indexData =
+                    IndexData.of(
+                            indexInfo,
+                            item.basDt(),
+                            SourceType.OPEN_API,
+                            item.mkp(),
+                            item.clpr(),
+                            item.hipr(),
+                            item.lopr(),
+                            item.vs(),
+                            item.fltRt(),
+                            item.trqu(),
+                            item.trPrc(),
+                            item.lstgMrktTotAmt());
+
+            indexDataRepository.save(indexData);
+        } else {
+            log.warn("[연동] 시세 누락: {} / {} / {}", item.idxCsf(), item.idxNm(), item.basDt());
+            result = JobResult.FAILED;
+        }
+
+        SyncJob created =
+                syncJobRepository.save(
+                        SyncJob.of(JobType.INDEX_DATA, indexInfo, item.basDt(), worker, result));
+
+        syncJobDtoList.add(syncJobMapper.toDto(created));
+    }
+
+    private boolean hasAllPrices(StockMarketIndexItem item) {
+        return Stream.of(
+                        item.mkp(),
+                        item.clpr(),
+                        item.hipr(),
+                        item.lopr(),
+                        item.vs(),
+                        item.fltRt(),
+                        item.trqu(),
+                        item.trPrc(),
+                        item.lstgMrktTotAmt())
+                .allMatch(Objects::nonNull);
+    }
+
+    private String indexKey(String indexClassification, String indexName) {
+        return indexClassification + "|" + indexName;
     }
 }

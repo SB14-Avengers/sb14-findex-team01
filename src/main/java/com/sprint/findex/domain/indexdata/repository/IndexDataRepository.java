@@ -4,6 +4,7 @@ import com.sprint.findex.domain.indexdata.entity.IndexData;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -40,4 +41,6 @@ public interface IndexDataRepository extends JpaRepository<IndexData, Long> {
                     + "limit 1")
     BigDecimal findByBeforePrice(
             @Param("startDate") LocalDate startDate, @Param("indexInfoId") Long indexInfoId);
+
+    Optional<IndexData> findByIndexInfoIdAndBaseDate(Long indexInfoId, LocalDate baseDate);
 }
