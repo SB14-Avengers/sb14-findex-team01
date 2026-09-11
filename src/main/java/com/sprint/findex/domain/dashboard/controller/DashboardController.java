@@ -28,7 +28,10 @@ public class DashboardController implements DashboardApi {
     @Override
     public ResponseEntity<List<RankedIndexPerformanceDto>> rankSelect(
             Long indexInfoId, PerformancePeriodType periodType, Integer limit) {
-        return null;
+
+        List<RankedIndexPerformanceDto> rank =
+                dashboardService.getRankedIndex(indexInfoId, periodType, limit);
+        return ResponseEntity.ok(rank);
     }
 
     @Override

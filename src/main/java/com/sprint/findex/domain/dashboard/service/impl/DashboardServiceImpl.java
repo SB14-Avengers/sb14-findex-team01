@@ -1,9 +1,6 @@
 package com.sprint.findex.domain.dashboard.service.impl;
 
-import com.sprint.findex.domain.dashboard.dto.response.ChartDataPoint;
-import com.sprint.findex.domain.dashboard.dto.response.IndexChartDto;
-import com.sprint.findex.domain.dashboard.dto.response.IndexInfoSummaryDto;
-import com.sprint.findex.domain.dashboard.dto.response.IndexPerformanceDto;
+import com.sprint.findex.domain.dashboard.dto.response.*;
 import com.sprint.findex.domain.dashboard.mapper.DashboardMapper;
 import com.sprint.findex.domain.dashboard.service.DashboardService;
 import com.sprint.findex.domain.indexdata.entity.IndexData;
@@ -19,6 +16,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,6 +65,7 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<IndexInfoSummaryDto> summaries() {
 
         List<IndexInfo> indexInfoList = indexInfoRepository.findAll();
@@ -96,21 +95,56 @@ public class DashboardServiceImpl implements DashboardService {
 
         for (IndexInfo indexInfo : infoList) {
 
-            BigDecimal currentPrice = indexDataRepository.findByCurrentPrice(indexInfo.getId());
-            BigDecimal beforePrice =
-                    indexDataRepository.findByBeforePrice(startDate, indexInfo.getId());
-            // 값이 비어있거나, beforePrice가 0이면(0으로 나누는것 방지)
-            if (currentPrice == null
-                    || beforePrice == null
-                    || beforePrice.compareTo(BigDecimal.ZERO) == 0) continue;
-            BigDecimal versus = currentPrice.subtract(beforePrice);
-            BigDecimal fluctuationRate =
-                    versus.multiply(BigDecimal.valueOf(100))
-                            .divide(beforePrice, 4, RoundingMode.HALF_EVEN);
+            IndexPerformanceDto indexPerformanceDto = indexPerformance(indexInfo, startDate);
+            if (indexPerformanceDto == null) continue;
 
-            dto.add(
-                    dashboardMapper.toPerformanceDto(
-                            indexInfo, versus, fluctuationRate, currentPrice, beforePrice));
+            dto.add(indexPerformanceDto);
+        }
+
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RankedIndexPerformanceDto> getRankedIndex(
+            Long indexInfoId, PerformancePeriodType periodType, Integer limit) {
+        // 반환할 것 선언
+        List<IndexPerformanceDto> tempDto = new ArrayList<>();
+        List<RankedIndexPerformanceDto> dto = new ArrayList<>();
+
+        LocalDate startDate =
+                switch (periodType) {
+                    case DAILY -> LocalDate.now().minusDays(1);
+                    case WEEKLY -> LocalDate.now().minusWeeks(1);
+                    case MONTHLY -> LocalDate.now().minusMonths(1);
+                };
+
+        List<IndexInfo> infoList = indexInfoRepository.findAll();
+
+        // id 받았으면 그 id만 나오게 하기
+        if (indexInfoId != null) {
+            infoList =
+                    infoList.stream()
+                            .filter(indexInfo -> Objects.equals(indexInfo.getId(), indexInfoId))
+                            .toList();
+        }
+
+        for (IndexInfo indexInfo : infoList) {
+            IndexPerformanceDto indexPerformanceDto = indexPerformance(indexInfo, startDate);
+            if (indexPerformanceDto == null) continue;
+
+            tempDto.add(indexPerformanceDto);
+        }
+
+        // 내림차순 정렬
+        tempDto.sort((o1, o2) -> o2.fluctuationRate().compareTo(o1.fluctuationRate()));
+
+        int rank = 1;
+        for (IndexPerformanceDto temp : tempDto) {
+            if (rank > limit) break;
+
+            dto.add(dashboardMapper.toRankIndex(temp, rank));
+            ++rank;
         }
 
         return dto;
@@ -156,5 +190,25 @@ public class DashboardServiceImpl implements DashboardService {
         }
 
         return dataPoints;
+    }
+
+    // 현재가, 과거가, 대비, 등락률 계산해서 IndexPerformanceDto로 묶어서 반환한다.
+    // 인자로 받을 것 indexInfo, startDate
+    private IndexPerformanceDto indexPerformance(IndexInfo indexInfo, LocalDate startDate) {
+
+        BigDecimal currentPrice = indexDataRepository.findByCurrentPrice(indexInfo.getId());
+        BigDecimal beforePrice =
+                indexDataRepository.findByBeforePrice(startDate, indexInfo.getId());
+        // 값이 비어있거나, beforePrice가 0이면(0으로 나누는것 방지)
+        if (currentPrice == null
+                || beforePrice == null
+                || beforePrice.compareTo(BigDecimal.ZERO) == 0) return null;
+        BigDecimal versus = currentPrice.subtract(beforePrice);
+        BigDecimal fluctuationRate =
+                versus.multiply(BigDecimal.valueOf(100))
+                        .divide(beforePrice, 4, RoundingMode.HALF_EVEN);
+
+        return dashboardMapper.toPerformanceDto(
+                indexInfo, versus, fluctuationRate, currentPrice, beforePrice);
     }
 }
