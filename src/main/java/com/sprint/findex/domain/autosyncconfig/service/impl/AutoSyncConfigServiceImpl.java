@@ -17,11 +17,13 @@ import com.sprint.findex.global.exception.errorcode.AutoSyncConfigErrorCode;
 import com.sprint.findex.global.type.JobResult;
 import com.sprint.findex.global.type.JobType;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -76,22 +78,28 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void executeAutoSync() {
         List<AutoSyncConfig> targets = autoSyncConfigRepository.findByEnabledTrue();
+        LocalDate today = LocalDate.now();
+        List<AutoSyncResult> results = new ArrayList<>();
 
         for (AutoSyncConfig config : targets) {
             IndexInfo indexInfo = config.getIndexInfo();
-            Long indexInfoId = indexInfo.getId(); // try/catch 양쪽에서 재사용 (catch 안에서 또 실패하는 것 방지)
+            Long indexInfoId = indexInfo.getId();
 
             try {
-                // 연동작업파트 메서드 확정 되면 여기에 추가해서 #18에 수정 예정.
                 log.info("[자동연동] 대상 확인 : indexInfoId={}", indexInfoId);
+                SyncTarget target = resolveSyncTarget(indexInfo, today);
+                results.add(syncOneIndex(target));
             } catch (Exception e) {
                 log.error("[자동연동] 실패 : indexInfoId={}", indexInfoId, e);
-                // 여기도 #18에서 수정 예정
+                results.add(new AutoSyncResult(indexInfoId, false));
             }
         }
+
+        long successCount = results.stream().filter(AutoSyncResult::success).count();
+        log.info("[자동연동] 배치 완료 : 총 {}건 중 성공 {}건", results.size(), successCount);
     }
 
     private LocalDate resolveFromDate(IndexInfo indexInfo, LocalDate today) {
