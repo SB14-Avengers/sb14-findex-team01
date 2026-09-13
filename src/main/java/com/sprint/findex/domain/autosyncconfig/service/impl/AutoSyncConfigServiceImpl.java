@@ -7,8 +7,10 @@ import com.sprint.findex.domain.autosyncconfig.mapper.AutoSyncConfigMapper;
 import com.sprint.findex.domain.autosyncconfig.repository.AutoSyncConfigRepository;
 import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigService;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
+import com.sprint.findex.domain.syncjob.service.SyncJobService;
 import com.sprint.findex.global.exception.BusinessException;
 import com.sprint.findex.global.exception.errorcode.AutoSyncConfigErrorCode;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
 
     private final AutoSyncConfigRepository autoSyncConfigRepository;
     private final AutoSyncConfigMapper autoSyncConfigMapper;
+    private final SyncJobService syncJobService;
 
     @Override
     @Transactional
@@ -84,4 +87,8 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
             }
         }
     }
+
+    private record SyncTarget(Long indexInfoId, LocalDate from, LocalDate to) {}
+
+    private record AutoSyncResult(Long indexInfoId, boolean success) {}
 }
