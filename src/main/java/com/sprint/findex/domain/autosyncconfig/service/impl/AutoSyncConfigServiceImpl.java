@@ -17,6 +17,7 @@ import com.sprint.findex.global.exception.errorcode.AutoSyncConfigErrorCode;
 import com.sprint.findex.global.type.JobResult;
 import com.sprint.findex.global.type.JobType;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 @Slf4j
 public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
+
+    // 스케줄러(@Scheduled)의 zone = "Asia/Seoul"과 맞춰서, 서버 JVM 기본 시간대가 서울이 아니어도
+    // "오늘"이 하루 밀리는 문제가 안 생기게 명시적으로 고정함
+    private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
 
     private final AutoSyncConfigRepository autoSyncConfigRepository;
     private final AutoSyncConfigMapper autoSyncConfigMapper;
@@ -81,7 +86,7 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void executeAutoSync() {
         List<AutoSyncConfig> targets = autoSyncConfigRepository.findByEnabledTrue();
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(SEOUL_ZONE);
         List<AutoSyncResult> results = new ArrayList<>();
 
         for (AutoSyncConfig config : targets) {
