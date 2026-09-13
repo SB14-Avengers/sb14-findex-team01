@@ -9,7 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface IndexDataRepository extends JpaRepository<IndexData, Long> {
+public interface IndexDataRepository
+        extends JpaRepository<IndexData, Long>, IndexDataRepositoryCustom {
     List<IndexData> findByIndexInfoIdOrderByBaseDateAsc(Long indexInfoId);
 
     boolean existsByIndexInfoIdAndBaseDate(Long indexInfoId, LocalDate baseDate);
