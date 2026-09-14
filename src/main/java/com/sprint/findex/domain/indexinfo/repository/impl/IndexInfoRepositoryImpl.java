@@ -20,18 +20,7 @@ public class IndexInfoRepositoryImpl implements IndexInfoRepositoryCustom {
 
     @Override
     public List<IndexInfo> search(IndexInfoSearchRequest request) {
-        BooleanBuilder builder = new BooleanBuilder();
-        if (request.indexClassification() != null) {
-            builder.and(
-                    indexInfo.indexClassification.containsIgnoreCase(
-                            request.indexClassification()));
-        }
-        if (request.indexName() != null) {
-            builder.and(indexInfo.indexName.containsIgnoreCase(request.indexName()));
-        }
-        if (request.favorite() != null) {
-            builder.and(indexInfo.favorite.eq(request.favorite()));
-        }
+        BooleanBuilder builder = filters(request);
         if (request.cursor() != null && request.idAfter() != null) {
             builder.and(
                     getCursorCondition(
@@ -48,25 +37,13 @@ public class IndexInfoRepositoryImpl implements IndexInfoRepositoryCustom {
                 .selectFrom(indexInfo)
                 .where(builder)
                 .orderBy(orderSpecifier, indexInfo.id.asc())
-                .limit(request.sizeOrDefault())
+                .limit(request.sizeOrDefault() + 1L)
                 .fetch();
     }
 
     @Override
     public long count(IndexInfoSearchRequest request) {
-        BooleanBuilder builder = new BooleanBuilder();
-
-        if (request.indexClassification() != null) {
-            builder.and(
-                    indexInfo.indexClassification.containsIgnoreCase(
-                            request.indexClassification()));
-        }
-        if (request.indexName() != null) {
-            builder.and(indexInfo.indexName.containsIgnoreCase(request.indexName()));
-        }
-        if (request.favorite() != null) {
-            builder.and(indexInfo.favorite.eq(request.favorite()));
-        }
+        BooleanBuilder builder = filters(request);
 
         Long total =
                 queryFactory.select(indexInfo.count()).from(indexInfo).where(builder).fetchOne();
@@ -116,7 +93,12 @@ public class IndexInfoRepositoryImpl implements IndexInfoRepositoryCustom {
                                                     .and(indexInfo.id.gt(idAfter)));
 
             case "employedItemsCount" -> {
-                int cursorValue = Integer.parseInt(cursor);
+                int cursorValue;
+                try {
+                    cursorValue = Integer.parseInt(cursor);
+                } catch (NumberFormatException e) {
+                    throw new BusinessException(IndexInfoErrorCode.INVALID_SORT_FIELD);
+                }
                 yield isAsc
                         ? indexInfo
                                 .employedItemsCount
@@ -157,5 +139,22 @@ public class IndexInfoRepositoryImpl implements IndexInfoRepositoryCustom {
 
             default -> throw new BusinessException(IndexInfoErrorCode.INVALID_SORT_FIELD);
         };
+    }
+
+    private BooleanBuilder filters(IndexInfoSearchRequest request) {
+        BooleanBuilder builder = new BooleanBuilder();
+
+        if (request.indexClassification() != null) {
+            builder.and(
+                    indexInfo.indexClassification.containsIgnoreCase(
+                            request.indexClassification()));
+        }
+        if (request.indexName() != null) {
+            builder.and(indexInfo.indexName.containsIgnoreCase(request.indexName()));
+        }
+        if (request.favorite() != null) {
+            builder.and(indexInfo.favorite.eq(request.favorite()));
+        }
+        return builder;
     }
 }

@@ -42,5 +42,5 @@ public interface IndexInfoApi {
     @Operation(summary = "지수 정보 목록 조회")
     @GetMapping
     ResponseEntity<CursorPageResponse<IndexInfoDto>> getIndexInfoList(
-            @ParameterObject IndexInfoSearchRequest request);
+            @ParameterObject @Valid IndexInfoSearchRequest request);
 }
