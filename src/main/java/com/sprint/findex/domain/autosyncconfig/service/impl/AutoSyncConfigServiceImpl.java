@@ -1,5 +1,6 @@
 package com.sprint.findex.domain.autosyncconfig.service.impl;
 
+import com.sprint.findex.domain.autosyncconfig.dto.request.AutoSyncConfigSearchRequest;
 import com.sprint.findex.domain.autosyncconfig.dto.request.AutoSyncConfigUpdateRequest;
 import com.sprint.findex.domain.autosyncconfig.dto.response.AutoSyncConfigDto;
 import com.sprint.findex.domain.autosyncconfig.entity.AutoSyncConfig;
@@ -80,6 +81,33 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
         config.updateEnabled(request.enabled());
 
         return autoSyncConfigMapper.toDto(config);
+    }
+
+    @Override
+    public CursorPageResponse<AutoSyncConfigDto> getAutoSyncConfigList(
+            AutoSyncConfigSearchRequest request) {
+
+        List<AutoSyncConfig> results = autoSyncConfigRepository.search(request);
+        boolean hasNext = results.size() > request.size();
+        List<AutoSyncConfig> content = hasNext ? results.subList(0, request.size()) : results;
+
+        List<AutoSyncConfigDto> dtos = content.stream().map(autoSyncConfigMapper::toDto).toList();
+
+        Long nextIdAfter = null;
+        String nextCursor = null;
+        if (!content.isEmpty()) {
+            AutoSyncConfig last = content.get(content.size() - 1);
+            nextIdAfter = last.getId();
+            nextCursor =
+                    switch (request.sortFieldOrDefault()) {
+                        case "enabled" -> String.valueOf(last.isEnabled());
+                        default -> last.getIndexInfo().getIndexName();
+                    };
+        }
+
+        long totalElements = autoSyncConfigRepository.count(request);
+        return new CursorPageResponse<>(
+                dtos, nextCursor, nextIdAfter, request.size(), totalElements, hasNext);
     }
 
     @Override
