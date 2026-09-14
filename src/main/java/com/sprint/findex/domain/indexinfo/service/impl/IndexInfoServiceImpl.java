@@ -124,7 +124,7 @@ public class IndexInfoServiceImpl implements IndexInfoService {
         String nextCursor = null;
 
         if (!content.isEmpty()) {
-            IndexInfo last = content.get(results.size() - 1);
+            IndexInfo last = content.get(content.size() - 1);
             nextIdAfter = last.getId();
             nextCursor =
                     switch (request.sortFieldOrDefault()) {
