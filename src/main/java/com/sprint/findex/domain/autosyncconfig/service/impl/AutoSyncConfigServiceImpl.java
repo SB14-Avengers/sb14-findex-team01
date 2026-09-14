@@ -33,9 +33,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
 
-    // 스케줄러(@Scheduled)의 zone = "Asia/Seoul"과 맞춰서, 서버 JVM 기본 시간대가 서울이 아니어도
-    // "오늘"이 하루 밀리는 문제가 안 생기게 명시적으로 고정함
     private static final ZoneId SEOUL_ZONE = ZoneId.of("Asia/Seoul");
+
+    private static final int MAX_FAILED_RETRY_DAYS = 7;
 
     private final AutoSyncConfigRepository autoSyncConfigRepository;
     private final AutoSyncConfigMapper autoSyncConfigMapper;
@@ -158,7 +158,8 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
 
         if (!earliestFailed.content().isEmpty()) {
             LocalDate earliestFailedDate = earliestFailed.content().get(0).targetDate();
-            if (earliestFailedDate.isBefore(candidateFrom)) {
+            if (earliestFailedDate.isBefore(candidateFrom)
+                    && !earliestFailedDate.isBefore(today.minusDays(MAX_FAILED_RETRY_DAYS))) {
                 return earliestFailedDate;
             }
         }
