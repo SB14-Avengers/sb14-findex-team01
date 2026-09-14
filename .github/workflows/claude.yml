@@ -48,4 +48,4 @@ jobs:
           # or https://code.claude.com/docs/en/cli-reference for available options
           # 코드 수정 도구(Edit/Write/git commit·push 등)는 목록에 없어서 자동으로 거부됨.
           # 이슈/PR 본문·댓글을 읽고 답변 댓글을 다는 것까지만 허용.
-          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh issue comment:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh api:*)"'
+          claude_args: '--allowedTools "Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh issue comment:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh api:*)"'
