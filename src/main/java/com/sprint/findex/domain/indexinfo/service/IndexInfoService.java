@@ -2,8 +2,10 @@ package com.sprint.findex.domain.indexinfo.service;
 
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoCreateRequest;
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoOpenApiRegisterRequest;
+import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoSearchRequest;
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoUpdateRequest;
 import com.sprint.findex.domain.indexinfo.dto.response.IndexInfoDto;
+import com.sprint.findex.global.common.CursorPageResponse;
 
 public interface IndexInfoService {
     IndexInfoDto registerFromUser(IndexInfoCreateRequest request);
@@ -15,4 +17,6 @@ public interface IndexInfoService {
     IndexInfoDto update(Long id, IndexInfoUpdateRequest request);
 
     void delete(Long id);
+
+    CursorPageResponse<IndexInfoDto> getIndexInfoList(IndexInfoSearchRequest request);
 }

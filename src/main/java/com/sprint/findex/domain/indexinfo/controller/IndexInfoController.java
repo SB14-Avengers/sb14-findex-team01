@@ -1,9 +1,11 @@
 package com.sprint.findex.domain.indexinfo.controller;
 
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoCreateRequest;
+import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoSearchRequest;
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoUpdateRequest;
 import com.sprint.findex.domain.indexinfo.dto.response.IndexInfoDto;
 import com.sprint.findex.domain.indexinfo.service.IndexInfoService;
+import com.sprint.findex.global.common.CursorPageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,5 +38,11 @@ public class IndexInfoController implements IndexInfoApi {
     public ResponseEntity<Void> delete(Long id) {
         indexInfoService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<CursorPageResponse<IndexInfoDto>> getIndexInfoList(
+            IndexInfoSearchRequest request) {
+        return ResponseEntity.ok(indexInfoService.getIndexInfoList(request));
     }
 }
