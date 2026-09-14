@@ -14,6 +14,8 @@ import com.sprint.findex.global.common.CursorPageResponse;
 import com.sprint.findex.global.exception.BusinessException;
 import com.sprint.findex.global.exception.errorcode.IndexInfoErrorCode;
 import com.sprint.findex.global.type.SourceType;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,13 +32,8 @@ public class IndexInfoServiceImpl implements IndexInfoService {
     @Override
     @Transactional
     public IndexInfoDto registerFromUser(IndexInfoCreateRequest request) {
-        if (indexInfoRepository.existsByIndexClassificationAndIndexName(
-                request.indexClassification(), request.indexName())) {
-            throw new BusinessException(IndexInfoErrorCode.DUPLICATE);
-        }
-
-        IndexInfo indexInfo =
-                IndexInfo.of(
+        RegisterParams params =
+                new RegisterParams(
                         request.indexClassification(),
                         request.indexName(),
                         request.employedItemsCount(),
@@ -44,22 +41,14 @@ public class IndexInfoServiceImpl implements IndexInfoService {
                         request.baseIndex(),
                         SourceType.USER,
                         Boolean.TRUE.equals(request.favorite()));
-
-        IndexInfo saved = indexInfoRepository.save(indexInfo);
-        autoSyncConfigService.initializeFor(saved);
-        return indexInfoMapper.toDto(saved);
+        return register(params);
     }
 
     @Override
     @Transactional
     public IndexInfoDto registerFromOpenApi(IndexInfoOpenApiRegisterRequest request) {
-        if (indexInfoRepository.existsByIndexClassificationAndIndexName(
-                request.indexClassification(), request.indexName())) {
-            throw new BusinessException(IndexInfoErrorCode.DUPLICATE);
-        }
-
-        IndexInfo indexInfo =
-                IndexInfo.of(
+        RegisterParams params =
+                new RegisterParams(
                         request.indexClassification(),
                         request.indexName(),
                         request.employedItemsCount(),
@@ -67,6 +56,24 @@ public class IndexInfoServiceImpl implements IndexInfoService {
                         request.baseIndex(),
                         SourceType.OPEN_API,
                         false);
+        return register(params);
+    }
+
+    private IndexInfoDto register(RegisterParams params) {
+        if (indexInfoRepository.existsByIndexClassificationAndIndexName(
+                params.indexClassification(), params.indexName())) {
+            throw new BusinessException(IndexInfoErrorCode.DUPLICATE);
+        }
+
+        IndexInfo indexInfo =
+                IndexInfo.of(
+                        params.indexClassification(),
+                        params.indexName(),
+                        params.employedItemsCount(),
+                        params.basePointInTime(),
+                        params.baseIndex(),
+                        params.sourceType(),
+                        params.favorite());
 
         IndexInfo saved = indexInfoRepository.save(indexInfo);
         autoSyncConfigService.initializeFor(saved);
@@ -138,4 +145,13 @@ public class IndexInfoServiceImpl implements IndexInfoService {
         return new CursorPageResponse<>(
                 dtos, nextCursor, nextIdAfter, request.sizeOrDefault(), totalElements, hasNext);
     }
+
+    private record RegisterParams(
+            String indexClassification,
+            String indexName,
+            Integer employedItemsCount,
+            LocalDate basePointInTime,
+            BigDecimal baseIndex,
+            SourceType sourceType,
+            boolean favorite) {}
 }
