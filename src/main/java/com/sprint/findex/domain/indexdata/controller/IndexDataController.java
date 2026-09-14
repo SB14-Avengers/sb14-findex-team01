@@ -1,9 +1,11 @@
 package com.sprint.findex.domain.indexdata.controller;
 
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataCreateRequest;
+import com.sprint.findex.domain.indexdata.dto.request.IndexDataSearchRequest;
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataUpdateRequest;
 import com.sprint.findex.domain.indexdata.dto.response.IndexDataDto;
 import com.sprint.findex.domain.indexdata.service.IndexDataService;
+import com.sprint.findex.global.common.CursorPageResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,5 +34,17 @@ public class IndexDataController implements IndexDataApi {
             Long indexDataId, IndexDataUpdateRequest updateRequest) {
         IndexDataDto indexDataDto = indexDataService.update(indexDataId, updateRequest);
         return ResponseEntity.ok(indexDataDto);
+    }
+
+    @Override
+    public ResponseEntity<Void> deleteById(Long indexDataId) {
+        indexDataService.deleteById(indexDataId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<CursorPageResponse<IndexDataDto>> find(IndexDataSearchRequest request) {
+        CursorPageResponse<IndexDataDto> indexDataPage = indexDataService.find(request);
+        return ResponseEntity.ok().body(indexDataPage);
     }
 }

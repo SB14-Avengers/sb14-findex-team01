@@ -15,7 +15,15 @@ spring:
 # 테스트에서는 외부 Open API를 실제로 호출하지 않으므로 더미 값만 주입 (Open API 연동 구현 시 @Value 해석용)
 PUBLIC_API_SERVICE_KEY: test-service-key
 
-# 메인 application.yml(findex.openapi.uri)은 테스트 클래스패스에서 로드되지 않아 별도로 더미 값 필요
+# main 의 application.yml 은 테스트 클래스패스의 동명 파일(이 파일)에 가려져 로드되지 않는다.
+# 그래서 거기 있는 findex.* 설정도 테스트에서는 안 보이므로, @Value 해석용 더미 값을 여기 다시 적어준다.
 findex:
   openapi:
-    uri: http://localhost/dummy-openapi-uri
+    # 실서비스로 요청이 나가지 않도록 루프백 주소를 사용한다.
+    uri: http://127.0.0.1:1/getStockMarketIndex
+    service-key: ${PUBLIC_API_SERVICE_KEY:}
+    num-of-rows: 100
+    connect-timeout: 1s
+    call-timeout: 1s
+  error:
+    expose-details: false

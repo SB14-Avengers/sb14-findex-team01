@@ -1,9 +1,6 @@
 package com.sprint.findex.domain.dashboard.mapper;
 
-import com.sprint.findex.domain.dashboard.dto.response.ChartDataPoint;
-import com.sprint.findex.domain.dashboard.dto.response.IndexChartDto;
-import com.sprint.findex.domain.dashboard.dto.response.IndexInfoSummaryDto;
-import com.sprint.findex.domain.dashboard.dto.response.IndexPerformanceDto;
+import com.sprint.findex.domain.dashboard.dto.response.*;
 import com.sprint.findex.domain.indexdata.entity.IndexData;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.global.type.ChartPeriodType;
@@ -41,4 +38,6 @@ public interface DashboardMapper {
             BigDecimal fluctuationRate,
             BigDecimal currentPrice,
             BigDecimal beforePrice);
+
+    RankedIndexPerformanceDto toRankIndex(IndexPerformanceDto performance, int rank);
 }

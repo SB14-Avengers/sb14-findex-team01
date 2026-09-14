@@ -1,0 +1,63 @@
+{
+  "response": {
+    "header": {
+      "resultCode": "00",
+      "resultMsg": "NORMAL_SERVICE"
+    },
+    "body": {
+      "numOfRows": "2",
+      "pageNo": "1",
+      "totalCount": "2",
+      "items": {
+        "item": [
+          {
+            "basDt": "20240102",
+            "idxCsf": "KOSPI시리즈",
+            "idxNm": "코스피",
+            "epyItmsCnt": "847",
+            "clpr": "2669.81",
+            "vs": "16.52",
+            "fltRt": "0.62",
+            "mkp": "2655.28",
+            "hipr": "2675.64",
+            "lopr": "2652.19",
+            "trqu": "412345678",
+            "trPrc": "9876543210000",
+            "lstgMrktTotAmt": "2150123456789012",
+            "lsYrEdVsFltRg": "123.45",
+            "lsYrEdVsFltRt": "4.85",
+            "yrWRcrdHgst": "2800.11",
+            "yrWRcrdHgstDt": "20230731",
+            "yrWRcrdLwst": "2200.22",
+            "yrWRcrdLwstDt": "20231023",
+            "basPntm": "19800104",
+            "basIdx": "100"
+          },
+          {
+            "basDt": "20240102",
+            "idxCsf": "KOSDAQ시리즈",
+            "idxNm": "코스닥",
+            "epyItmsCnt": "1690",
+            "clpr": "866.49",
+            "vs": "-3.21",
+            "fltRt": "-0.37",
+            "mkp": "870.10",
+            "hipr": "872.55",
+            "lopr": "864.02",
+            "trqu": "1234567890",
+            "trPrc": "876543210000",
+            "lstgMrktTotAmt": "401234567890123",
+            "lsYrEdVsFltRg": "-10.01",
+            "lsYrEdVsFltRt": "-1.14",
+            "yrWRcrdHgst": "920.00",
+            "yrWRcrdHgstDt": "20230615",
+            "yrWRcrdLwst": "700.00",
+            "yrWRcrdLwstDt": "20231026",
+            "basPntm": "19960701",
+            "basIdx": "1000"
+          }
+        ]
+      }
+    }
+  }
+}

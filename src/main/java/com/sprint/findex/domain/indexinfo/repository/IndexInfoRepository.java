@@ -9,4 +9,6 @@ public interface IndexInfoRepository
     boolean existsByIndexClassificationAndIndexName(String indexClassification, String indexName);
 
     List<IndexInfo> findByFavoriteTrue();
+
+    IndexInfo findByIndexClassificationAndIndexName(String indexClassification, String indexName);
 }

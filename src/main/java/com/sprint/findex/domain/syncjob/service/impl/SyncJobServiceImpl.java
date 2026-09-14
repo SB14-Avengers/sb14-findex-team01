@@ -2,8 +2,14 @@ package com.sprint.findex.domain.syncjob.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sprint.findex.domain.indexdata.entity.IndexData;
+import com.sprint.findex.domain.indexdata.repository.IndexDataRepository;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.domain.indexinfo.repository.IndexInfoRepository;
+import com.sprint.findex.domain.openapi.client.OpenApiClient;
+import com.sprint.findex.domain.openapi.dto.request.StockMarketIndexQuery;
+import com.sprint.findex.domain.openapi.dto.response.StockMarketIndexItem;
+import com.sprint.findex.domain.syncjob.dto.request.SyncJobCreateRequest;
 import com.sprint.findex.domain.syncjob.dto.request.SyncJobSearchRequest;
 import com.sprint.findex.domain.syncjob.dto.response.SyncJobDto;
 import com.sprint.findex.domain.syncjob.entity.SyncJob;
@@ -12,6 +18,7 @@ import com.sprint.findex.domain.syncjob.repository.SyncJobRepository;
 import com.sprint.findex.domain.syncjob.service.SyncJobService;
 import com.sprint.findex.global.common.CursorPageResponse;
 import com.sprint.findex.global.exception.BusinessException;
+import com.sprint.findex.global.exception.errorcode.IndexInfoErrorCode;
 import com.sprint.findex.global.exception.errorcode.SyncJobErrorCode;
 import com.sprint.findex.global.type.JobResult;
 import com.sprint.findex.global.type.JobType;
@@ -23,8 +30,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,9 +48,11 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @RequiredArgsConstructor
 public class SyncJobServiceImpl implements SyncJobService {
     private static final DateTimeFormatter BAS_DT = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private final OpenApiClient openApiClient;
     private final IndexInfoRepository indexInfoRepository;
     private final SyncJobRepository syncJobRepository;
     private final SyncJobMapper syncJobMapper;
+    private final IndexDataRepository indexDataRepository;
 
     // TODO: OpenApi 만들어지기 전에 임시 사용 코드
     @Value("${findex.openapi.uri}")
@@ -130,9 +140,59 @@ public class SyncJobServiceImpl implements SyncJobService {
     }
 
     @Override
-    public List<SyncJobDto> indexDataSync() {
-        // TODO: OpenApi로 교체
-        return null;
+    @Transactional
+    public List<SyncJobDto> indexDataSync(SyncJobCreateRequest request) {
+        List<SyncJobDto> syncJobDtoList = new ArrayList<>();
+        String worker = clientIpResolver();
+        List<Long> indexInfoIds = request.indexInfoIds();
+        LocalDate baseDateFrom = request.baseDateFrom();
+        LocalDate baseDateTo = request.baseDateTo();
+
+        // 전체 지수 조회 시 id에 -1 값으로 들어옴
+        if (indexInfoIds.contains(-1L)) {
+            StockMarketIndexQuery query =
+                    new StockMarketIndexQuery(null, null, baseDateFrom, baseDateTo);
+
+            Map<String, IndexInfo> indexInfoMap =
+                    indexInfoRepository.findAll().stream()
+                            .collect(
+                                    Collectors.toMap(
+                                            info ->
+                                                    indexKey(
+                                                            info.getIndexClassification(),
+                                                            info.getIndexName()),
+                                            info -> info));
+
+            List<StockMarketIndexItem> items = openApiClient.fetchStockMarketIndex(query);
+
+            for (StockMarketIndexItem item : items) {
+                IndexInfo indexInfo = indexInfoMap.get(indexKey(item.idxCsf(), item.idxNm()));
+
+                if (indexInfo == null) {
+                    continue;
+                }
+                indexDataCreate(syncJobDtoList, worker, indexInfo, item);
+            }
+            return syncJobDtoList;
+        }
+
+        IndexInfo indexInfo =
+                indexInfoRepository
+                        .findById(indexInfoIds.get(0))
+                        .orElseThrow(() -> new BusinessException(IndexInfoErrorCode.NOT_FOUND));
+
+        StockMarketIndexQuery query =
+                new StockMarketIndexQuery(indexInfo.getIndexName(), null, baseDateFrom, baseDateTo);
+        List<StockMarketIndexItem> items = openApiClient.fetchStockMarketIndex(query);
+        String indexClassification = indexInfo.getIndexClassification();
+
+        for (StockMarketIndexItem item : items) {
+            if (!indexClassification.equals(item.idxCsf())) {
+                continue;
+            }
+            indexDataCreate(syncJobDtoList, worker, indexInfo, item);
+        }
+        return syncJobDtoList;
     }
 
     @Override
@@ -174,28 +234,28 @@ public class SyncJobServiceImpl implements SyncJobService {
 
         String clientIp = httpServletRequest.getHeader("X-Forwarded-For");
 
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("Proxy-Client-IP");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("WL-Proxy-Client-IP");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("HTTP_CLIENT_IP");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("HTTP_X_FORWARDED_FOR");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("X-Real-IP");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("X-RealIP");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getHeader("REMOTE_ADDR");
         }
-        if (clientIp == null || clientIp.length() == 0 || "unknown".equalsIgnoreCase(clientIp)) {
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
             clientIp = httpServletRequest.getRemoteAddr();
         }
 
@@ -204,5 +264,73 @@ public class SyncJobServiceImpl implements SyncJobService {
         }
 
         return clientIp;
+    }
+
+    private void indexDataCreate(
+            List<SyncJobDto> syncJobDtoList,
+            String worker,
+            IndexInfo indexInfo,
+            StockMarketIndexItem item) {
+        Optional<IndexData> existing =
+                indexDataRepository.findByIndexInfoIdAndBaseDate(indexInfo.getId(), item.basDt());
+        JobResult result = JobResult.SUCCESS;
+
+        if (existing.isPresent() && hasAllPrices(item)) {
+            existing.get()
+                    .update(
+                            item.mkp(),
+                            item.clpr(),
+                            item.hipr(),
+                            item.lopr(),
+                            item.vs(),
+                            item.fltRt(),
+                            item.trqu(),
+                            item.trPrc(),
+                            item.lstgMrktTotAmt());
+        } else if (hasAllPrices(item)) {
+            IndexData indexData =
+                    IndexData.of(
+                            indexInfo,
+                            item.basDt(),
+                            SourceType.OPEN_API,
+                            item.mkp(),
+                            item.clpr(),
+                            item.hipr(),
+                            item.lopr(),
+                            item.vs(),
+                            item.fltRt(),
+                            item.trqu(),
+                            item.trPrc(),
+                            item.lstgMrktTotAmt());
+
+            indexDataRepository.save(indexData);
+        } else {
+            log.warn("[연동] 시세 누락: {} / {} / {}", item.idxCsf(), item.idxNm(), item.basDt());
+            result = JobResult.FAILED;
+        }
+
+        SyncJob created =
+                syncJobRepository.save(
+                        SyncJob.of(JobType.INDEX_DATA, indexInfo, item.basDt(), worker, result));
+
+        syncJobDtoList.add(syncJobMapper.toDto(created));
+    }
+
+    private boolean hasAllPrices(StockMarketIndexItem item) {
+        return Stream.of(
+                        item.mkp(),
+                        item.clpr(),
+                        item.hipr(),
+                        item.lopr(),
+                        item.vs(),
+                        item.fltRt(),
+                        item.trqu(),
+                        item.trPrc(),
+                        item.lstgMrktTotAmt())
+                .allMatch(Objects::nonNull);
+    }
+
+    private String indexKey(String indexClassification, String indexName) {
+        return indexClassification + "|" + indexName;
     }
 }
