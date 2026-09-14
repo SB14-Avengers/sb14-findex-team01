@@ -126,15 +126,44 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
 
         CursorPageResponse<SyncJobDto> lastSuccess = syncJobService.find(searchRequest);
 
+        LocalDate candidateFrom;
         if (lastSuccess.content().isEmpty()) {
             LocalDate basePointInTime = indexInfo.getBasePointInTime();
-            return (basePointInTime == null || basePointInTime.isAfter(today))
-                    ? today
-                    : basePointInTime;
+            candidateFrom =
+                    (basePointInTime == null || basePointInTime.isAfter(today))
+                            ? today
+                            : basePointInTime;
+        } else {
+            LocalDate lastSuccessDate = lastSuccess.content().get(0).targetDate();
+            candidateFrom = lastSuccessDate.plusDays(1);
         }
 
-        LocalDate lastSuccessDate = lastSuccess.content().get(0).targetDate();
-        return lastSuccessDate.plusDays(1);
+        SyncJobSearchRequest failedSearchRequest =
+                new SyncJobSearchRequest(
+                        JobType.INDEX_DATA,
+                        indexInfo.getId(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        JobResult.FAILED,
+                        null,
+                        null,
+                        "targetDate",
+                        "asc",
+                        1);
+
+        CursorPageResponse<SyncJobDto> earliestFailed = syncJobService.find(failedSearchRequest);
+
+        if (!earliestFailed.content().isEmpty()) {
+            LocalDate earliestFailedDate = earliestFailed.content().get(0).targetDate();
+            if (earliestFailedDate.isBefore(candidateFrom)) {
+                return earliestFailedDate;
+            }
+        }
+
+        return candidateFrom;
     }
 
     private SyncTarget resolveSyncTarget(IndexInfo indexInfo, LocalDate today) {
