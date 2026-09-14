@@ -7,6 +7,7 @@ import com.sprint.findex.domain.indexinfo.repository.IndexInfoRepository;
 import com.sprint.findex.domain.openapi.client.OpenApiClient;
 import com.sprint.findex.domain.openapi.dto.request.StockMarketIndexQuery;
 import com.sprint.findex.domain.openapi.dto.response.StockMarketIndexItem;
+import com.sprint.findex.domain.openapi.exception.OpenApiClientException;
 import com.sprint.findex.domain.syncjob.dto.request.SyncJobCreateRequest;
 import com.sprint.findex.domain.syncjob.dto.request.SyncJobSearchRequest;
 import com.sprint.findex.domain.syncjob.dto.response.SyncJobDto;
@@ -40,7 +41,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @RequiredArgsConstructor
 public class SyncJobServiceImpl implements SyncJobService {
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
-    private static final int MAX_LOOPBACK_DAYS = 5;
+    private static final int MAX_LOOKBACK_DAYS = 10;
     private final OpenApiClient openApiClient;
     private final IndexInfoRepository indexInfoRepository;
     private final SyncJobRepository syncJobRepository;
@@ -98,7 +99,7 @@ public class SyncJobServiceImpl implements SyncJobService {
                                         SourceType.OPEN_API,
                                         false));
             } else {
-                indexInfo.syncUpdate(item.epyItmsCnt(), item.basPntm(), item.basIdx());
+                indexInfo.update(item.epyItmsCnt(), item.basPntm(), item.basIdx(), null);
             }
 
             SyncJob syncJob =
@@ -126,9 +127,6 @@ public class SyncJobServiceImpl implements SyncJobService {
 
         // 전체 지수 조회 시 id에 -1 값으로 들어옴
         if (indexInfoIds.contains(-1L)) {
-            StockMarketIndexQuery query =
-                    new StockMarketIndexQuery(null, null, baseDateFrom, baseDateTo);
-
             Map<String, IndexInfo> indexInfoMap =
                     indexInfoRepository.findAll().stream()
                             .collect(
@@ -139,7 +137,8 @@ public class SyncJobServiceImpl implements SyncJobService {
                                                             info.getIndexName()),
                                             info -> info));
 
-            List<StockMarketIndexItem> items = openApiClient.fetchStockMarketIndex(query);
+            List<StockMarketIndexItem> items =
+                    fetchItems(new StockMarketIndexQuery(null, null, baseDateFrom, baseDateTo));
 
             for (StockMarketIndexItem item : items) {
                 IndexInfo indexInfo = indexInfoMap.get(indexKey(item.idxCsf(), item.idxNm()));
@@ -157,9 +156,10 @@ public class SyncJobServiceImpl implements SyncJobService {
                         .findById(indexInfoIds.get(0))
                         .orElseThrow(() -> new BusinessException(IndexInfoErrorCode.NOT_FOUND));
 
-        StockMarketIndexQuery query =
-                new StockMarketIndexQuery(indexInfo.getIndexName(), null, baseDateFrom, baseDateTo);
-        List<StockMarketIndexItem> items = openApiClient.fetchStockMarketIndex(query);
+        List<StockMarketIndexItem> items =
+                fetchItems(
+                        new StockMarketIndexQuery(
+                                indexInfo.getIndexName(), null, baseDateFrom, baseDateTo));
         String indexClassification = indexInfo.getIndexClassification();
 
         for (StockMarketIndexItem item : items) {
@@ -313,10 +313,9 @@ public class SyncJobServiceImpl implements SyncJobService {
     private List<StockMarketIndexItem> fetchLatestDayItems() {
         LocalDate baseDate = LocalDate.now(SEOUL);
 
-        for (int attempt = 0; attempt < MAX_LOOPBACK_DAYS; attempt++) {
+        for (int attempt = 0; attempt < MAX_LOOKBACK_DAYS; attempt++) {
             List<StockMarketIndexItem> items =
-                    openApiClient.fetchStockMarketIndex(
-                            new StockMarketIndexQuery(null, baseDate, null, null));
+                    fetchItems(new StockMarketIndexQuery(null, baseDate, null, null));
 
             if (!items.isEmpty()) {
                 log.info("[연동] 지수 정보 기준일: {}", baseDate);
@@ -325,5 +324,17 @@ public class SyncJobServiceImpl implements SyncJobService {
             baseDate = baseDate.minusDays(1);
         }
         throw new BusinessException(SyncJobErrorCode.OPEN_API_NO_DATA);
+    }
+
+    private List<StockMarketIndexItem> fetchItems(StockMarketIndexQuery query) {
+        try {
+            return openApiClient.fetchStockMarketIndex(query);
+        } catch (OpenApiClientException exception) {
+            log.error(
+                    "[연동] Open API 호출 실패 kind={} message={}",
+                    exception.getKind(),
+                    exception.getMessage());
+            throw new BusinessException(SyncJobErrorCode.OPEN_API_CALL_FAILED);
+        }
     }
 }

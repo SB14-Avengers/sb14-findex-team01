@@ -104,17 +104,4 @@ public class IndexInfo extends BaseEntity {
             this.favorite = favorite;
         }
     }
-
-    public void syncUpdate(
-            Integer employedItemsCount, LocalDate basePointInTime, BigDecimal baseIndex) {
-        if (employedItemsCount != null) {
-            this.employedItemsCount = employedItemsCount;
-        }
-        if (basePointInTime != null) {
-            this.basePointInTime = basePointInTime;
-        }
-        if (baseIndex != null) {
-            this.baseIndex = baseIndex;
-        }
-    }
 }
