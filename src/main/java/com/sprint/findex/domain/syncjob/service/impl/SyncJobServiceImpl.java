@@ -1,7 +1,5 @@
 package com.sprint.findex.domain.syncjob.service.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sprint.findex.domain.indexdata.entity.IndexData;
 import com.sprint.findex.domain.indexdata.repository.IndexDataRepository;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
@@ -24,21 +22,15 @@ import com.sprint.findex.global.type.JobResult;
 import com.sprint.findex.global.type.JobType;
 import com.sprint.findex.global.type.SourceType;
 import jakarta.servlet.http.HttpServletRequest;
-import java.math.BigDecimal;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -47,84 +39,69 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @Slf4j
 @RequiredArgsConstructor
 public class SyncJobServiceImpl implements SyncJobService {
-    private static final DateTimeFormatter BAS_DT = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
+    private static final int MAX_LOOPBACK_DAYS = 5;
     private final OpenApiClient openApiClient;
     private final IndexInfoRepository indexInfoRepository;
     private final SyncJobRepository syncJobRepository;
     private final SyncJobMapper syncJobMapper;
     private final IndexDataRepository indexDataRepository;
 
-    // TODO: OpenApi 만들어지기 전에 임시 사용 코드
-    @Value("${findex.openapi.uri}")
-    private String baseUrl;
-
-    @Value("${PUBLIC_API_SERVICE_KEY}")
-    private String serviceKey;
-
-    private JsonNode fetch(LocalDate baseDate) {
-        try {
-            String url =
-                    baseUrl
-                            + "?serviceKey="
-                            + URLEncoder.encode(serviceKey, StandardCharsets.UTF_8)
-                            + "&resultType=json&pageNo=1&numOfRows=1000"
-                            + "&basDt="
-                            + baseDate.format(BAS_DT);
-
-            String json =
-                    RestClient.create().get().uri(URI.create(url)).retrieve().body(String.class);
-
-            return new ObjectMapper()
-                    .readTree(json)
-                    .path("response")
-                    .path("body")
-                    .path("items")
-                    .path("item");
-        } catch (Exception e) {
-            log.error("[OpenApi] 호출 실패 basDt={}", baseDate, e);
-            throw new BusinessException(SyncJobErrorCode.OPEN_API_CALL_FAILED);
-        }
-    }
-
     @Override
     @Transactional
     public List<SyncJobDto> indexInfoSync() {
-        // TODO: OpenApi로 교체
-        List<SyncJobDto> syncJobs = new ArrayList<>();
-        JsonNode items = fetch(LocalDate.of(2026, 9, 8));
-        String worker = clientIpResolver();
+        List<StockMarketIndexItem> items = fetchLatestDayItems();
 
-        for (JsonNode item : items) {
-            if (!item.hasNonNull("basPntm")
-                    || !item.hasNonNull("basIdx")
-                    || !item.hasNonNull("epyItmsCnt")) {
-                log.warn(
-                        "[연동] 필수값 누락으로 건너뜀: {} / {}",
-                        item.path("idxCsf").asText(),
-                        item.path("idxNm").asText());
+        Map<String, StockMarketIndexItem> latestItemByIndex =
+                items.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        item -> indexKey(item.idxCsf(), item.idxNm()),
+                                        item -> item,
+                                        (existingItem, newItem) ->
+                                                existingItem.basDt().isAfter(newItem.basDt())
+                                                        ? existingItem
+                                                        : newItem));
+
+        Map<String, IndexInfo> indexInfoMap =
+                indexInfoRepository.findAll().stream()
+                        .collect(
+                                Collectors.toMap(
+                                        info ->
+                                                indexKey(
+                                                        info.getIndexClassification(),
+                                                        info.getIndexName()),
+                                        info -> info));
+
+        String worker = clientIpResolver();
+        List<SyncJobDto> syncJobs = new ArrayList<>();
+
+        for (Map.Entry<String, StockMarketIndexItem> entry : latestItemByIndex.entrySet()) {
+            StockMarketIndexItem item = entry.getValue();
+
+            if (item.epyItmsCnt() == null || item.basPntm() == null || item.basIdx() == null) {
+                log.warn("[연동] 지수 정보 필수값 누락으로 건너뜀: {} / {}", item.idxCsf(), item.idxNm());
                 continue;
             }
-            String indexClassification = item.path("idxCsf").asText();
-            String indexName = item.path("idxNm").asText();
-            int employedItemsCount = item.path("epyItmsCnt").asInt();
-            LocalDate baseDate = LocalDate.parse(item.get("basPntm").asText(), BAS_DT);
-            BigDecimal baseIndex = new BigDecimal(item.get("basIdx").asText());
 
-            // TODO: indexInfo 존재하면 업데이트, 미존재하면 생성 - 업데이트(employedItemsCount, baseDate, baseIndex)
-            // TODO: 나중에 findByIndexClassificationAndIndexName 필요
-            IndexInfo indexInfo =
-                    indexInfoRepository.save(
-                            IndexInfo.of(
-                                    indexClassification,
-                                    indexName,
-                                    employedItemsCount,
-                                    baseDate,
-                                    baseIndex,
-                                    SourceType.OPEN_API,
-                                    false));
+            IndexInfo indexInfo = indexInfoMap.get(entry.getKey());
 
-            // TODO: worker 수정
-            SyncJob created =
+            if (indexInfo == null) {
+                indexInfo =
+                        indexInfoRepository.save(
+                                IndexInfo.of(
+                                        item.idxCsf(),
+                                        item.idxNm(),
+                                        item.epyItmsCnt(),
+                                        item.basPntm(),
+                                        item.basIdx(),
+                                        SourceType.OPEN_API,
+                                        false));
+            } else {
+                indexInfo.syncUpdate(item.epyItmsCnt(), item.basPntm(), item.basIdx());
+            }
+
+            SyncJob syncJob =
                     syncJobRepository.save(
                             SyncJob.of(
                                     JobType.INDEX_INFO,
@@ -132,8 +109,7 @@ public class SyncJobServiceImpl implements SyncJobService {
                                     null,
                                     worker,
                                     JobResult.SUCCESS));
-
-            syncJobs.add(syncJobMapper.toDto(created));
+            syncJobs.add(syncJobMapper.toDto(syncJob));
         }
 
         return syncJobs;
@@ -332,5 +308,22 @@ public class SyncJobServiceImpl implements SyncJobService {
 
     private String indexKey(String indexClassification, String indexName) {
         return indexClassification + "|" + indexName;
+    }
+
+    private List<StockMarketIndexItem> fetchLatestDayItems() {
+        LocalDate baseDate = LocalDate.now(SEOUL);
+
+        for (int attempt = 0; attempt < MAX_LOOPBACK_DAYS; attempt++) {
+            List<StockMarketIndexItem> items =
+                    openApiClient.fetchStockMarketIndex(
+                            new StockMarketIndexQuery(null, baseDate, null, null));
+
+            if (!items.isEmpty()) {
+                log.info("[연동] 지수 정보 기준일: {}", baseDate);
+                return items;
+            }
+            baseDate = baseDate.minusDays(1);
+        }
+        throw new BusinessException(SyncJobErrorCode.OPEN_API_NO_DATA);
     }
 }
