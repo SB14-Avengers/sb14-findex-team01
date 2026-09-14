@@ -17,7 +17,8 @@ public enum SyncJobErrorCode implements BaseErrorCode {
     OPEN_API_CALL_FAILED(
             HttpStatus.BAD_GATEWAY,
             "SYNC_JOB_OPEN_API_CALL_FAILED",
-            "공공데이터포털 Open API 호출에 실패했습니다.");
+            "공공데이터포털 Open API 호출에 실패했습니다."),
+    OPEN_API_NO_DATA(HttpStatus.BAD_GATEWAY, "OPEN_API_NO_DATA", "Open Api 반환 데이터가 존재하지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
