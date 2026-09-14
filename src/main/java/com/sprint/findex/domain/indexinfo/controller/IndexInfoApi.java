@@ -1,12 +1,15 @@
 package com.sprint.findex.domain.indexinfo.controller;
 
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoCreateRequest;
+import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoSearchRequest;
 import com.sprint.findex.domain.indexinfo.dto.request.IndexInfoUpdateRequest;
 import com.sprint.findex.domain.indexinfo.dto.response.IndexInfoDto;
+import com.sprint.findex.global.common.CursorPageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,4 +38,9 @@ public interface IndexInfoApi {
     @ApiResponse(responseCode = "404", description = "삭제할 지수 정보를 찾을 수 없음")
     @DeleteMapping("/{id}")
     ResponseEntity<Void> delete(@PathVariable Long id);
+
+    @Operation(summary = "지수 정보 목록 조회")
+    @GetMapping
+    ResponseEntity<CursorPageResponse<IndexInfoDto>> getIndexInfoList(
+            @ParameterObject IndexInfoSearchRequest request);
 }
