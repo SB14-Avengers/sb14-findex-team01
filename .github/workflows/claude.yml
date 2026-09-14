@@ -19,9 +19,9 @@ jobs:
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
+      contents: read # 코드 수정/커밋 자체가 불가능하도록 토큰 레벨에서 차단
+      pull-requests: write # 댓글 작성엔 write 필요 (GitHub API 특성상 read로는 코멘트 작성 불가)
+      issues: write
       id-token: write
       actions: read # Required for Claude to read CI results on PRs
     steps:
@@ -46,4 +46,6 @@ jobs:
           # Optional: Add claude_args to customize behavior and configuration
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-          # claude_args: '--allowed-tools Bash(gh pr *)'
+          # 코드 수정 도구(Edit/Write/git commit·push 등)는 목록에 없어서 자동으로 거부됨.
+          # 이슈/PR 본문·댓글을 읽고 답변 댓글을 다는 것까지만 허용.
+          claude_args: '--allowedTools "Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh issue comment:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh api:*)"'
