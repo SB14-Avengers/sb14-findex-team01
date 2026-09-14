@@ -6,7 +6,8 @@ import java.util.List;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface AutoSyncConfigRepository extends JpaRepository<AutoSyncConfig, Long> {
+public interface AutoSyncConfigRepository
+        extends JpaRepository<AutoSyncConfig, Long>, AutoSyncConfigRepositoryCustom {
 
     boolean existsByIndexInfo(IndexInfo indexInfo);
 
