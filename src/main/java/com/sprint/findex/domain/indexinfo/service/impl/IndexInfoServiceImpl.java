@@ -113,14 +113,18 @@ public class IndexInfoServiceImpl implements IndexInfoService {
     public CursorPageResponse<IndexInfoDto> getIndexInfoList(IndexInfoSearchRequest request) {
         List<IndexInfo> results = indexInfoRepository.search(request);
 
-        List<IndexInfoDto> dtos = results.stream().map(indexInfoMapper::toDto).toList();
+        boolean hasNext = results.size() > request.sizeOrDefault();
+        List<IndexInfo> content =
+                hasNext
+                        ? results.subList(0, request.sizeOrDefault()) // 초과분 잘라내기
+                        : results;
 
-        boolean hasNext = dtos.size() == request.sizeOrDefault();
+        List<IndexInfoDto> dtos = content.stream().map(indexInfoMapper::toDto).toList();
         Long nextIdAfter = null;
         String nextCursor = null;
 
-        if (!results.isEmpty()) {
-            IndexInfo last = results.get(results.size() - 1);
+        if (!content.isEmpty()) {
+            IndexInfo last = content.get(results.size() - 1);
             nextIdAfter = last.getId();
             nextCursor =
                     switch (request.sortFieldOrDefault()) {
