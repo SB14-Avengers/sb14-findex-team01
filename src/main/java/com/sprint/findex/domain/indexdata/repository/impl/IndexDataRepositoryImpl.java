@@ -47,13 +47,16 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
     }
 
     @Override
-    public List<IndexData> findAllForExport(IndexDataExportRequest request) {
-        boolean asc = "asc".equalsIgnoreCase(request.sortDirection());
+    public List<IndexData> findForExport(
+            IndexDataExportRequest request, String cursor, Long idAfter, int limit) {
+        boolean asc = "asc".equals(request.sortDirection());
 
         return queryFactory
                 .selectFrom(indexData)
                 .where(filters(request))
+                .where(cursorPredicate(request.sortField(), cursor, idAfter, asc))
                 .orderBy(orderSpecifiers(request.sortField(), asc))
+                .limit(limit)
                 .fetch();
     }
 
@@ -84,17 +87,20 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
         return baseDate == null ? null : indexData.baseDate.loe(baseDate);
     }
 
-    // 첫 페이지의 마지막 데이터 다음부터 읽도록 정하는 기능.
     private BooleanExpression cursorPredicate(IndexDataSearchRequest request, boolean asc) {
-        if (request.cursor() == null || request.cursor().isBlank() || request.idAfter() == null) {
+        return cursorPredicate(request.sortField(), request.cursor(), request.idAfter(), asc);
+    }
+
+    // 첫 페이지의 마지막 데이터 다음부터 읽도록 정하는 기능.
+    private BooleanExpression cursorPredicate(
+            String sortField, String cursorValue, Long idAfter, boolean asc) {
+        if (cursorValue == null || cursorValue.isBlank() || idAfter == null) {
             return null;
         }
 
-        Long idAfter = request.idAfter();
-
-        return switch (request.sortField()) {
+        return switch (sortField) {
             case "baseDate" -> {
-                LocalDate cursor = LocalDate.parse(request.cursor());
+                LocalDate cursor = LocalDate.parse(cursorValue);
 
                 yield asc
                         ? indexData
@@ -108,7 +114,7 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
             }
 
             case "marketPrice" -> {
-                BigDecimal cursor = new BigDecimal(request.cursor());
+                BigDecimal cursor = new BigDecimal(cursorValue);
 
                 yield asc
                         ? indexData
@@ -122,7 +128,7 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
             }
 
             case "closingPrice" -> {
-                BigDecimal cursor = new BigDecimal(request.cursor());
+                BigDecimal cursor = new BigDecimal(cursorValue);
 
                 yield asc
                         ? indexData
@@ -140,7 +146,7 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
             }
 
             case "highPrice" -> {
-                BigDecimal cursor = new BigDecimal(request.cursor());
+                BigDecimal cursor = new BigDecimal(cursorValue);
 
                 yield asc
                         ? indexData
@@ -154,7 +160,7 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
             }
 
             case "lowPrice" -> {
-                BigDecimal cursor = new BigDecimal(request.cursor());
+                BigDecimal cursor = new BigDecimal(cursorValue);
 
                 yield asc
                         ? indexData
@@ -168,7 +174,7 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
             }
 
             case "tradingQuantity" -> {
-                Long cursor = Long.parseLong(request.cursor());
+                Long cursor = Long.parseLong(cursorValue);
 
                 yield asc
                         ? indexData
@@ -190,7 +196,7 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
             }
 
             case "versus" -> {
-                BigDecimal cursor = new BigDecimal(request.cursor());
+                BigDecimal cursor = new BigDecimal(cursorValue);
 
                 yield asc
                         ? indexData
@@ -204,7 +210,7 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
             }
 
             case "fluctuationRate" -> {
-                BigDecimal cursor = new BigDecimal(request.cursor());
+                BigDecimal cursor = new BigDecimal(cursorValue);
 
                 yield asc
                         ? indexData
@@ -221,6 +227,46 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
                                 .or(
                                         indexData
                                                 .fluctuationRate
+                                                .eq(cursor)
+                                                .and(indexData.id.lt(idAfter)));
+            }
+
+            case "tradingPrice" -> {
+                Long cursor = Long.parseLong(cursorValue);
+
+                yield asc
+                        ? indexData
+                                .tradingPrice
+                                .gt(cursor)
+                                .or(indexData.tradingPrice.eq(cursor).and(indexData.id.gt(idAfter)))
+                        : indexData
+                                .tradingPrice
+                                .lt(cursor)
+                                .or(
+                                        indexData
+                                                .tradingPrice
+                                                .eq(cursor)
+                                                .and(indexData.id.lt(idAfter)));
+            }
+
+            case "marketTotalAmount" -> {
+                Long cursor = Long.parseLong(cursorValue);
+
+                yield asc
+                        ? indexData
+                                .marketTotalAmount
+                                .gt(cursor)
+                                .or(
+                                        indexData
+                                                .marketTotalAmount
+                                                .eq(cursor)
+                                                .and(indexData.id.gt(idAfter)))
+                        : indexData
+                                .marketTotalAmount
+                                .lt(cursor)
+                                .or(
+                                        indexData
+                                                .marketTotalAmount
                                                 .eq(cursor)
                                                 .and(indexData.id.lt(idAfter)));
             }
@@ -288,6 +334,23 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
                             }
                             : new OrderSpecifier[] {
                                 indexData.fluctuationRate.desc(), indexData.id.desc()
+                            };
+            case "tradingPrice" ->
+                    asc
+                            ? new OrderSpecifier[] {
+                                indexData.tradingPrice.asc(), indexData.id.asc()
+                            }
+                            : new OrderSpecifier[] {
+                                indexData.tradingPrice.desc(), indexData.id.desc()
+                            };
+
+            case "marketTotalAmount" ->
+                    asc
+                            ? new OrderSpecifier[] {
+                                indexData.marketTotalAmount.asc(), indexData.id.asc()
+                            }
+                            : new OrderSpecifier[] {
+                                indexData.marketTotalAmount.desc(), indexData.id.desc()
                             };
             default -> throw new BusinessException(IndexDataErrorCode.INVALID_SORT_FIELD);
         };

@@ -10,5 +10,6 @@ public interface IndexDataRepositoryCustom {
 
     Long countBy(IndexDataSearchRequest request);
 
-    List<IndexData> findAllForExport(IndexDataExportRequest request);
+    List<IndexData> findForExport(
+            IndexDataExportRequest request, String cursor, Long idAfter, int limit);
 }
