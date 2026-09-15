@@ -1,5 +1,6 @@
 package com.sprint.findex.domain.syncjob.service.impl;
 
+import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigInitializer;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.domain.indexinfo.repository.IndexInfoRepository;
 import com.sprint.findex.domain.openapi.client.OpenApiClient;
@@ -47,6 +48,7 @@ public class SyncJobServiceImpl implements SyncJobService {
     private final SyncJobRepository syncJobRepository;
     private final SyncJobMapper syncJobMapper;
     private final IndexDataWriter indexDataWriter;
+    private final AutoSyncConfigInitializer autoSyncConfigInitializer;
 
     @Override
     @Transactional
@@ -99,6 +101,8 @@ public class SyncJobServiceImpl implements SyncJobService {
                                         item.basIdx(),
                                         SourceType.OPEN_API,
                                         false));
+
+                autoSyncConfigInitializer.initializeFor(indexInfo);
             } else {
                 indexInfo.update(item.epyItmsCnt(), item.basPntm(), item.basIdx(), null);
             }
