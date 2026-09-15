@@ -6,7 +6,6 @@ import com.sprint.findex.domain.autosyncconfig.dto.response.AutoSyncConfigDto;
 import com.sprint.findex.domain.autosyncconfig.entity.AutoSyncConfig;
 import com.sprint.findex.domain.autosyncconfig.mapper.AutoSyncConfigMapper;
 import com.sprint.findex.domain.autosyncconfig.repository.AutoSyncConfigRepository;
-import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigInitializer;
 import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigService;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.domain.syncjob.dto.request.SyncJobCreateRequest;
