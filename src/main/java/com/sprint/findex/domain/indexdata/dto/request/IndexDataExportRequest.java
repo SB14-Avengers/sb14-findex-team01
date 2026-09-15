@@ -1,5 +1,6 @@
 package com.sprint.findex.domain.indexdata.dto.request;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Pattern;
 import java.time.LocalDate;
 
@@ -23,5 +24,10 @@ public record IndexDataExportRequest(
         if (sortDirection == null || sortDirection.isBlank()) {
             sortDirection = "desc";
         }
+    }
+
+    @AssertTrue(message = "시작일은 종료일보다 늦을 수 없습니다.")
+    public boolean isDateRangeValid() {
+        return startDate == null || endDate == null || !startDate.isAfter(endDate);
     }
 }

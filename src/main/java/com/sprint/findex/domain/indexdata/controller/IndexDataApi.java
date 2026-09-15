@@ -38,7 +38,7 @@ public interface IndexDataApi {
     @Operation(summary = "지수 데이터 목록 조회")
     @GetMapping
     ResponseEntity<CursorPageResponse<IndexDataDto>> find(
-            @ParameterObject IndexDataSearchRequest request);
+            @Valid @ParameterObject IndexDataSearchRequest request);
 
     @Operation(summary = "지수 데이터 csv Export")
     @GetMapping(value = "/export/csv")
