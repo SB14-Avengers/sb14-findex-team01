@@ -2,7 +2,7 @@ FROM eclipse-temurin:17-jdk AS builder
 WORKDIR /app
 COPY . .
 RUN chmod +x ./gradlew
-RUN ./gradlew clean build -x test
+RUN ./gradlew clean bootJar -x test
 
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
