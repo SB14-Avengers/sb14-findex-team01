@@ -1,13 +1,20 @@
 package com.sprint.findex.domain.indexdata.dto.request;
 
+import jakarta.validation.constraints.Pattern;
 import java.time.LocalDate;
 
 public record IndexDataExportRequest(
         Long indexInfoId,
         LocalDate startDate,
         LocalDate endDate,
-        String sortField,
-        String sortDirection) {
+        @Pattern(
+                        regexp =
+                                "baseDate|marketPrice|closingPrice|highPrice|lowPrice|versus|"
+                                        + "fluctuationRate|tradingQuantity|tradingPrice|marketTotalAmount",
+                        message = "지원하지 않는 정렬 필드입니다.")
+                String sortField,
+        @Pattern(regexp = "asc|desc", message = "정렬 방향은 asc 또는 desc만 가능합니다.")
+                String sortDirection) {
 
     public IndexDataExportRequest {
         if (sortField == null || sortField.isBlank()) {

@@ -9,6 +9,7 @@ import com.sprint.findex.domain.indexdata.service.IndexDataService;
 import com.sprint.findex.global.common.CursorPageResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,8 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 public class IndexDataController implements IndexDataApi {
 
     private final IndexDataService indexDataService;
+
+    private static final ZoneId KOREA_ZONE_ID = ZoneId.of("Asia/Seoul");
 
     @Override
     public ResponseEntity<IndexDataDto> create(IndexDataCreateRequest createRequest) {
@@ -53,7 +56,7 @@ public class IndexDataController implements IndexDataApi {
 
     @Override
     public ResponseEntity<StreamingResponseBody> exportCsv(IndexDataExportRequest request) {
-        String fileName = "index-data-" + LocalDate.now() + ".csv";
+        String fileName = "index-data-" + LocalDate.now(KOREA_ZONE_ID) + ".csv";
 
         StreamingResponseBody stream =
                 outputStream -> indexDataService.exportCsv(request, outputStream);
