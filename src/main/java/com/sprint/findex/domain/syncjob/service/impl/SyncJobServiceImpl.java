@@ -51,6 +51,7 @@ public class SyncJobServiceImpl implements SyncJobService {
     @Override
     @Transactional
     public List<SyncJobDto> indexInfoSync() {
+
         List<StockMarketIndexItem> items = fetchLatestDayItems();
 
         Map<String, StockMarketIndexItem> latestItemByIndex =
