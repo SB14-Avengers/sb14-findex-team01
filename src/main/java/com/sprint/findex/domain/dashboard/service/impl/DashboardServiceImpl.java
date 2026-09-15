@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class DashboardServiceImpl implements DashboardService {
 
     private final IndexInfoRepository indexInfoRepository;
@@ -30,7 +31,6 @@ public class DashboardServiceImpl implements DashboardService {
     private final DashboardMapper dashboardMapper;
 
     @Override
-    @Transactional(readOnly = true)
     public IndexChartDto getChart(Long id, ChartPeriodType periodType) {
 
         IndexInfo indexInfo =
@@ -65,7 +65,6 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<IndexInfoSummaryDto> summaries() {
 
         List<IndexInfo> indexInfoList = indexInfoRepository.findAll();
@@ -76,7 +75,6 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<IndexPerformanceDto> getFavorite(PerformancePeriodType periodType) {
 
         // 반환할것
@@ -105,7 +103,6 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public List<RankedIndexPerformanceDto> getRankedIndex(
             Long indexInfoId, PerformancePeriodType periodType, Integer limit) {
         // 반환할 것 선언
