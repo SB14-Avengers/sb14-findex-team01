@@ -15,6 +15,7 @@ import com.sprint.findex.global.common.CursorPageResponse;
 import com.sprint.findex.global.exception.BusinessException;
 import com.sprint.findex.global.exception.errorcode.IndexDataErrorCode;
 import com.sprint.findex.global.type.SourceType;
+import jakarta.persistence.EntityManager;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -35,6 +36,10 @@ public class IndexDataServiceImpl implements IndexDataService {
     private final IndexInfoRepository indexInfoRepository;
     private final IndexDataRepository indexDataRepository;
     private final IndexDataMapper indexDataMapper;
+
+    private static final int EXPORT_BATCH_SIZE = 1000;
+
+    private final EntityManager entityManager;
 
     @Override
     @Transactional
@@ -162,15 +167,16 @@ public class IndexDataServiceImpl implements IndexDataService {
 
         String nextCursor = null;
         Long nextIdAfter = null;
+        List<IndexDataDto> indexDataDtos = indexDataMapper.toDtoList(content);
 
         if (hasNext) {
-            IndexData last = content.get(content.size() - 1);
+            IndexDataDto last = indexDataDtos.get(indexDataDtos.size() - 1);
             nextCursor = cursorValue(last, request.sortField());
-            nextIdAfter = last.getId();
+            nextIdAfter = last.id();
         }
 
         return new CursorPageResponse<>(
-                indexDataMapper.toDtoList(content),
+                indexDataDtos,
                 nextCursor,
                 nextIdAfter,
                 size,
@@ -181,39 +187,59 @@ public class IndexDataServiceImpl implements IndexDataService {
     @Override
     public void exportCsv(IndexDataExportRequest request, OutputStream outputStream)
             throws IOException {
-        List<IndexData> indexDataList = indexDataRepository.findAllForExport(request);
-
         BufferedWriter writer =
                 new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
 
         writer.write('\uFEFF');
-        writer.write(
-                "id,indexInfoId,baseDate,sourceType,marketPrice,closingPrice,"
-                        + "highPrice,lowPrice,versus,fluctuationRate,"
-                        + "tradingQuantity,tradingPrice,marketTotalAmount");
+        writer.write("기준일자,시가,종가,고가,저가,전일대비등락,등락률,거래량,거래대금,시가총액");
         writer.newLine();
 
-        for (IndexData indexData : indexDataList) {
-            writer.write(
-                    String.join(
-                            ",",
-                            escapeCsv(indexData.getId()),
-                            escapeCsv(indexData.getIndexInfo().getId()),
-                            escapeCsv(indexData.getBaseDate()),
-                            escapeCsv(indexData.getSourceType()),
-                            escapeCsv(indexData.getMarketPrice().toPlainString()),
-                            escapeCsv(indexData.getClosingPrice().toPlainString()),
-                            escapeCsv(indexData.getHighPrice().toPlainString()),
-                            escapeCsv(indexData.getLowPrice().toPlainString()),
-                            escapeCsv(indexData.getVersus().toPlainString()),
-                            escapeCsv(indexData.getFluctuationRate().toPlainString()),
-                            escapeCsv(indexData.getTradingQuantity()),
-                            escapeCsv(indexData.getTradingPrice()),
-                            escapeCsv(indexData.getMarketTotalAmount())));
-            writer.newLine();
+        String cursor = null;
+        Long idAfter = null;
+
+        while (true) {
+            List<IndexData> indexDataBatch =
+                    indexDataRepository.findForExport(request, cursor, idAfter, EXPORT_BATCH_SIZE);
+
+            if (indexDataBatch.isEmpty()) {
+                break;
+            }
+
+            List<IndexDataDto> indexDataDtos = indexDataMapper.toDtoList(indexDataBatch);
+
+            for (IndexDataDto indexDataDto : indexDataDtos) {
+                writeCsvRow(writer, indexDataDto);
+            }
+
+            IndexDataDto last = indexDataDtos.get(indexDataDtos.size() - 1);
+            cursor = cursorValue(last, request.sortField());
+            idAfter = last.id();
+
+            entityManager.clear();
+
+            if (indexDataBatch.size() < EXPORT_BATCH_SIZE) {
+                break;
+            }
         }
 
         writer.flush();
+    }
+
+    private void writeCsvRow(BufferedWriter writer, IndexDataDto indexDataDto) throws IOException {
+        writer.write(
+                String.join(
+                        ",",
+                        escapeCsv(indexDataDto.baseDate()),
+                        escapeCsv(indexDataDto.marketPrice().toPlainString()),
+                        escapeCsv(indexDataDto.closingPrice().toPlainString()),
+                        escapeCsv(indexDataDto.highPrice().toPlainString()),
+                        escapeCsv(indexDataDto.lowPrice().toPlainString()),
+                        escapeCsv(indexDataDto.versus().toPlainString()),
+                        escapeCsv(indexDataDto.fluctuationRate().toPlainString()),
+                        escapeCsv(indexDataDto.tradingQuantity()),
+                        escapeCsv(indexDataDto.tradingPrice()),
+                        escapeCsv(indexDataDto.marketTotalAmount())));
+        writer.newLine();
     }
 
     private String escapeCsv(Object value) {
@@ -226,16 +252,18 @@ public class IndexDataServiceImpl implements IndexDataService {
     }
 
     // Repository의 cursorPredicate()와 짝이 이뤄져야 함.
-    private String cursorValue(IndexData indexData, String sortField) {
+    private String cursorValue(IndexDataDto indexDataDto, String sortField) {
         return switch (sortField) {
-            case "baseDate" -> indexData.getBaseDate().toString();
-            case "marketPrice" -> indexData.getMarketPrice().toPlainString();
-            case "closingPrice" -> indexData.getClosingPrice().toPlainString();
-            case "highPrice" -> indexData.getHighPrice().toPlainString();
-            case "lowPrice" -> indexData.getLowPrice().toPlainString();
-            case "tradingQuantity" -> String.valueOf(indexData.getTradingQuantity());
-            case "versus" -> indexData.getVersus().toPlainString();
-            case "fluctuationRate" -> indexData.getFluctuationRate().toPlainString();
+            case "baseDate" -> indexDataDto.baseDate().toString();
+            case "marketPrice" -> indexDataDto.marketPrice().toPlainString();
+            case "closingPrice" -> indexDataDto.closingPrice().toPlainString();
+            case "highPrice" -> indexDataDto.highPrice().toPlainString();
+            case "lowPrice" -> indexDataDto.lowPrice().toPlainString();
+            case "tradingQuantity" -> String.valueOf(indexDataDto.tradingQuantity());
+            case "versus" -> indexDataDto.versus().toPlainString();
+            case "fluctuationRate" -> indexDataDto.fluctuationRate().toPlainString();
+            case "tradingPrice" -> String.valueOf(indexDataDto.tradingPrice());
+            case "marketTotalAmount" -> String.valueOf(indexDataDto.marketTotalAmount());
             default -> throw new BusinessException(IndexDataErrorCode.INVALID_SORT_FIELD);
         };
     }

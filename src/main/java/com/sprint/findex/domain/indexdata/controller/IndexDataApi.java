@@ -43,5 +43,5 @@ public interface IndexDataApi {
     @Operation(summary = "지수 데이터 csv Export")
     @GetMapping(value = "/export/csv")
     ResponseEntity<StreamingResponseBody> exportCsv(
-            @ParameterObject IndexDataExportRequest request);
+            @Valid @ParameterObject IndexDataExportRequest request);
 }
