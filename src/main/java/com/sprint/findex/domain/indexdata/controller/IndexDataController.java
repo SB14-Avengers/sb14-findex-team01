@@ -1,15 +1,18 @@
 package com.sprint.findex.domain.indexdata.controller;
 
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataCreateRequest;
+import com.sprint.findex.domain.indexdata.dto.request.IndexDataExportRequest;
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataSearchRequest;
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataUpdateRequest;
 import com.sprint.findex.domain.indexdata.dto.response.IndexDataDto;
 import com.sprint.findex.domain.indexdata.service.IndexDataService;
 import com.sprint.findex.global.common.CursorPageResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 @RestController
 @RequiredArgsConstructor
@@ -46,5 +49,23 @@ public class IndexDataController implements IndexDataApi {
     public ResponseEntity<CursorPageResponse<IndexDataDto>> find(IndexDataSearchRequest request) {
         CursorPageResponse<IndexDataDto> indexDataPage = indexDataService.find(request);
         return ResponseEntity.ok().body(indexDataPage);
+    }
+
+    @Override
+    public ResponseEntity<StreamingResponseBody> exportCsv(IndexDataExportRequest request) {
+        String fileName = "index-data-" + LocalDate.now() + ".csv";
+
+        StreamingResponseBody stream =
+                outputStream -> indexDataService.exportCsv(request, outputStream);
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(fileName, StandardCharsets.UTF_8)
+                                .build()
+                                .toString())
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .body(stream);
     }
 }

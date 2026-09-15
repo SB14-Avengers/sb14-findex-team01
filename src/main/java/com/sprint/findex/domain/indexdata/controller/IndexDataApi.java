@@ -1,6 +1,7 @@
 package com.sprint.findex.domain.indexdata.controller;
 
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataCreateRequest;
+import com.sprint.findex.domain.indexdata.dto.request.IndexDataExportRequest;
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataSearchRequest;
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataUpdateRequest;
 import com.sprint.findex.domain.indexdata.dto.response.IndexDataDto;
@@ -11,6 +12,7 @@ import jakarta.validation.Valid;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 @Tag(name = "지수 데이터 관리", description = "지수 데이터 API")
 @RequestMapping("/api/index-data")
@@ -37,4 +39,9 @@ public interface IndexDataApi {
     @GetMapping
     ResponseEntity<CursorPageResponse<IndexDataDto>> find(
             @ParameterObject IndexDataSearchRequest request);
+
+    @Operation(summary = "지수 데이터 csv Export")
+    @GetMapping(value = "/export/csv")
+    ResponseEntity<StreamingResponseBody> exportCsv(
+            @ParameterObject IndexDataExportRequest request);
 }
