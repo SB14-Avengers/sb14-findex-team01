@@ -20,7 +20,10 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -159,6 +162,7 @@ public class IndexDataServiceImpl implements IndexDataService {
 
     @Override
     public CursorPageResponse<IndexDataDto> find(IndexDataSearchRequest request) {
+        validateCursor(request);
         int size = request.size();
         List<IndexData> found = indexDataRepository.search(request, size + 1);
 
@@ -182,6 +186,35 @@ public class IndexDataServiceImpl implements IndexDataService {
                 size,
                 indexDataRepository.countBy(request),
                 hasNext);
+    }
+
+    private void validateCursor(IndexDataSearchRequest request) {
+        String cursor = request.cursor();
+
+        if (cursor == null || cursor.isBlank()) {
+            return;
+        }
+
+        try {
+            switch (request.sortField()) {
+                case "baseDate" -> LocalDate.parse(cursor);
+
+                case "marketPrice",
+                        "closingPrice",
+                        "highPrice",
+                        "lowPrice",
+                        "versus",
+                        "fluctuationRate" ->
+                        new BigDecimal(cursor);
+
+                case "tradingQuantity", "tradingPrice", "marketTotalAmount" ->
+                        Long.parseLong(cursor);
+
+                default -> throw new BusinessException(IndexDataErrorCode.INVALID_SORT_FIELD);
+            }
+        } catch (DateTimeParseException | NumberFormatException e) {
+            throw new BusinessException(IndexDataErrorCode.INVALID_CURSOR);
+        }
     }
 
     @Override
