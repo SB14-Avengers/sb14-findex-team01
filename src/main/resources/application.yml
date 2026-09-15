@@ -40,7 +40,7 @@ findex:
     uri: https://apis.data.go.kr/1160100/service/GetMarketIndexInfoService/getStockMarketIndex
     # 디코딩 키를 사용한다. 키가 비어 있으면 앱 기동 후 실제 호출 시 CONFIG_UNAVAILABLE이 발생한다.
     service-key: ${PUBLIC_API_SERVICE_KEY:}
-    num-of-rows: 10
+    num-of-rows: 10000
     # 페이지 1회 요청 기준이며 전체 페이지를 합친 시간 제한은 없다.
     connect-timeout: 3s
     call-timeout: 15s
