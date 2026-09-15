@@ -1,7 +1,5 @@
 package com.sprint.findex.domain.syncjob.service.impl;
 
-import com.sprint.findex.domain.indexdata.entity.IndexData;
-import com.sprint.findex.domain.indexdata.repository.IndexDataRepository;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.domain.indexinfo.repository.IndexInfoRepository;
 import com.sprint.findex.domain.openapi.client.OpenApiClient;
@@ -25,11 +23,13 @@ import com.sprint.findex.global.type.SourceType;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestAttributes;
@@ -46,7 +46,7 @@ public class SyncJobServiceImpl implements SyncJobService {
     private final IndexInfoRepository indexInfoRepository;
     private final SyncJobRepository syncJobRepository;
     private final SyncJobMapper syncJobMapper;
-    private final IndexDataRepository indexDataRepository;
+    private final IndexDataWriter indexDataWriter;
 
     @Override
     @Transactional
@@ -118,7 +118,6 @@ public class SyncJobServiceImpl implements SyncJobService {
     }
 
     @Override
-    @Transactional
     public List<SyncJobDto> indexDataSync(SyncJobCreateRequest request) {
         List<SyncJobDto> syncJobDtoList = new ArrayList<>();
         String worker = clientIpResolver();
@@ -147,7 +146,7 @@ public class SyncJobServiceImpl implements SyncJobService {
                 if (indexInfo == null) {
                     continue;
                 }
-                indexDataCreate(syncJobDtoList, worker, indexInfo, item);
+                syncJobDtoList.add(syncOne(indexInfo.getId(), worker, item));
             }
             return syncJobDtoList;
         }
@@ -167,7 +166,7 @@ public class SyncJobServiceImpl implements SyncJobService {
             if (!indexClassification.equals(item.idxCsf())) {
                 continue;
             }
-            indexDataCreate(syncJobDtoList, worker, indexInfo, item);
+            syncJobDtoList.add(syncOne(indexInfo.getId(), worker, item));
         }
         return syncJobDtoList;
     }
@@ -243,70 +242,6 @@ public class SyncJobServiceImpl implements SyncJobService {
         return clientIp;
     }
 
-    private void indexDataCreate(
-            List<SyncJobDto> syncJobDtoList,
-            String worker,
-            IndexInfo indexInfo,
-            StockMarketIndexItem item) {
-        Optional<IndexData> existing =
-                indexDataRepository.findByIndexInfoIdAndBaseDate(indexInfo.getId(), item.basDt());
-        JobResult result = JobResult.SUCCESS;
-
-        if (existing.isPresent() && hasAllPrices(item)) {
-            existing.get()
-                    .update(
-                            item.mkp(),
-                            item.clpr(),
-                            item.hipr(),
-                            item.lopr(),
-                            item.vs(),
-                            item.fltRt(),
-                            item.trqu(),
-                            item.trPrc(),
-                            item.lstgMrktTotAmt());
-        } else if (hasAllPrices(item)) {
-            IndexData indexData =
-                    IndexData.of(
-                            indexInfo,
-                            item.basDt(),
-                            SourceType.OPEN_API,
-                            item.mkp(),
-                            item.clpr(),
-                            item.hipr(),
-                            item.lopr(),
-                            item.vs(),
-                            item.fltRt(),
-                            item.trqu(),
-                            item.trPrc(),
-                            item.lstgMrktTotAmt());
-
-            indexDataRepository.save(indexData);
-        } else {
-            log.warn("[연동] 시세 누락: {} / {} / {}", item.idxCsf(), item.idxNm(), item.basDt());
-            result = JobResult.FAILED;
-        }
-
-        SyncJob created =
-                syncJobRepository.save(
-                        SyncJob.of(JobType.INDEX_DATA, indexInfo, item.basDt(), worker, result));
-
-        syncJobDtoList.add(syncJobMapper.toDto(created));
-    }
-
-    private boolean hasAllPrices(StockMarketIndexItem item) {
-        return Stream.of(
-                        item.mkp(),
-                        item.clpr(),
-                        item.hipr(),
-                        item.lopr(),
-                        item.vs(),
-                        item.fltRt(),
-                        item.trqu(),
-                        item.trPrc(),
-                        item.lstgMrktTotAmt())
-                .allMatch(Objects::nonNull);
-    }
-
     private String indexKey(String indexClassification, String indexName) {
         return indexClassification + "|" + indexName;
     }
@@ -336,6 +271,20 @@ public class SyncJobServiceImpl implements SyncJobService {
                     exception.getKind(),
                     exception.getMessage());
             throw new BusinessException(SyncJobErrorCode.OPEN_API_CALL_FAILED);
+        }
+    }
+
+    private SyncJobDto syncOne(Long indexInfoId, String worker, StockMarketIndexItem item) {
+        try {
+            return indexDataWriter.sync(indexInfoId, worker, item);
+        } catch (DataAccessException exception) {
+            log.warn(
+                    "[연동] 저장 실패: {} / {} / {}",
+                    item.idxCsf(),
+                    item.idxNm(),
+                    item.basDt(),
+                    exception);
+            return indexDataWriter.recordFailure(indexInfoId, item.basDt(), worker);
         }
     }
 }
