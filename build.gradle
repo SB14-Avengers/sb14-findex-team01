@@ -136,10 +136,12 @@ tasks.register('installIntellijCodeStyle', Copy) {
 }
 
 // build 실행 시에도 위 세 가지가 같이 적용되게 남겨둠 (수동으로 다시 설치하고 싶을 때 `./gradlew installGitHooks` 등으로 재실행 가능)
-tasks.named('build') {
-	dependsOn tasks.named('installGitHooks')
-	dependsOn tasks.named('installGitMessageTemplate')
-	dependsOn tasks.named('installIntellijCodeStyle')
+if (!System.getenv('CI')) {
+  tasks.named('build') {
+    dependsOn tasks.named('installGitHooks')
+    dependsOn tasks.named('installGitMessageTemplate')
+    dependsOn tasks.named('installIntellijCodeStyle')
+  }
 }
 
 // ⚠️ 위 dependsOn만으로는 `./gradlew build`를 직접 실행해야만 설치됨 — 인텔리제이 Run 버튼(▶)은
