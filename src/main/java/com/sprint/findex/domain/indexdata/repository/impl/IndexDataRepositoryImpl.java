@@ -5,6 +5,7 @@ import static com.sprint.findex.domain.indexdata.entity.QIndexData.indexData;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.sprint.findex.domain.indexdata.dto.request.IndexDataExportRequest;
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataSearchRequest;
 import com.sprint.findex.domain.indexdata.entity.IndexData;
 import com.sprint.findex.domain.indexdata.repository.IndexDataRepositoryCustom;
@@ -45,12 +46,29 @@ public class IndexDataRepositoryImpl implements IndexDataRepositoryCustom {
         return total == null ? 0L : total;
     }
 
-    // 어떤 데이터만 볼지 정하는 기능
+    @Override
+    public List<IndexData> findAllForExport(IndexDataExportRequest request) {
+        boolean asc = "asc".equalsIgnoreCase(request.sortDirection());
+
+        return queryFactory
+                .selectFrom(indexData)
+                .where(filters(request))
+                .orderBy(orderSpecifiers(request.sortField(), asc))
+                .fetch();
+    }
+
     private BooleanExpression[] filters(IndexDataSearchRequest request) {
+        return filters(request.indexInfoId(), request.startDate(), request.endDate());
+    }
+
+    private BooleanExpression[] filters(IndexDataExportRequest request) {
+        return filters(request.indexInfoId(), request.startDate(), request.endDate());
+    }
+
+    // 어떤 데이터만 볼지 정하는 기능
+    private BooleanExpression[] filters(Long indexInfoId, LocalDate startDate, LocalDate endDate) {
         return new BooleanExpression[] {
-            eqIndexInfoId(request.indexInfoId()),
-            goeBaseDate(request.startDate()),
-            loeBaseDate(request.endDate())
+            eqIndexInfoId(indexInfoId), goeBaseDate(startDate), loeBaseDate(endDate)
         };
     }
 

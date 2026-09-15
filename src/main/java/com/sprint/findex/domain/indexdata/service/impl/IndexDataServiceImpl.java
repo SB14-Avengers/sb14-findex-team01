@@ -1,6 +1,7 @@
 package com.sprint.findex.domain.indexdata.service.impl;
 
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataCreateRequest;
+import com.sprint.findex.domain.indexdata.dto.request.IndexDataExportRequest;
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataSearchRequest;
 import com.sprint.findex.domain.indexdata.dto.request.IndexDataUpdateRequest;
 import com.sprint.findex.domain.indexdata.dto.response.IndexDataDto;
@@ -14,6 +15,11 @@ import com.sprint.findex.global.common.CursorPageResponse;
 import com.sprint.findex.global.exception.BusinessException;
 import com.sprint.findex.global.exception.errorcode.IndexDataErrorCode;
 import com.sprint.findex.global.type.SourceType;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -170,6 +176,53 @@ public class IndexDataServiceImpl implements IndexDataService {
                 size,
                 indexDataRepository.countBy(request),
                 hasNext);
+    }
+
+    @Override
+    public void exportCsv(IndexDataExportRequest request, OutputStream outputStream)
+            throws IOException {
+        List<IndexData> indexDataList = indexDataRepository.findAllForExport(request);
+
+        BufferedWriter writer =
+                new BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+
+        writer.write('\uFEFF');
+        writer.write(
+                "id,indexInfoId,baseDate,sourceType,marketPrice,closingPrice,"
+                        + "highPrice,lowPrice,versus,fluctuationRate,"
+                        + "tradingQuantity,tradingPrice,marketTotalAmount");
+        writer.newLine();
+
+        for (IndexData indexData : indexDataList) {
+            writer.write(
+                    String.join(
+                            ",",
+                            escapeCsv(indexData.getId()),
+                            escapeCsv(indexData.getIndexInfo().getId()),
+                            escapeCsv(indexData.getBaseDate()),
+                            escapeCsv(indexData.getSourceType()),
+                            escapeCsv(indexData.getMarketPrice().toPlainString()),
+                            escapeCsv(indexData.getClosingPrice().toPlainString()),
+                            escapeCsv(indexData.getHighPrice().toPlainString()),
+                            escapeCsv(indexData.getLowPrice().toPlainString()),
+                            escapeCsv(indexData.getVersus().toPlainString()),
+                            escapeCsv(indexData.getFluctuationRate().toPlainString()),
+                            escapeCsv(indexData.getTradingQuantity()),
+                            escapeCsv(indexData.getTradingPrice()),
+                            escapeCsv(indexData.getMarketTotalAmount())));
+            writer.newLine();
+        }
+
+        writer.flush();
+    }
+
+    private String escapeCsv(Object value) {
+        if (value == null) {
+            return "";
+        }
+
+        String text = String.valueOf(value).replace("\"", "\"\"");
+        return "\"" + text + "\"";
     }
 
     // Repository의 cursorPredicate()와 짝이 이뤄져야 함.
