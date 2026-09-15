@@ -6,6 +6,7 @@ import com.sprint.findex.domain.autosyncconfig.dto.response.AutoSyncConfigDto;
 import com.sprint.findex.domain.autosyncconfig.entity.AutoSyncConfig;
 import com.sprint.findex.domain.autosyncconfig.mapper.AutoSyncConfigMapper;
 import com.sprint.findex.domain.autosyncconfig.repository.AutoSyncConfigRepository;
+import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigInitializer;
 import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigService;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.domain.syncjob.dto.request.SyncJobCreateRequest;
@@ -23,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,24 +41,12 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
     private final AutoSyncConfigRepository autoSyncConfigRepository;
     private final AutoSyncConfigMapper autoSyncConfigMapper;
     private final SyncJobService syncJobService;
+    private final AutoSyncConfigInitializer autoSyncConfigInitializer;
 
     @Override
     @Transactional
     public void initializeFor(IndexInfo indexInfo) {
-
-        if (indexInfo == null) {
-            throw new BusinessException(AutoSyncConfigErrorCode.INDEX_INFO_NULL);
-        }
-
-        if (autoSyncConfigRepository.existsByIndexInfo(indexInfo)) {
-            throw new BusinessException(AutoSyncConfigErrorCode.ALREADY_EXISTS);
-        }
-
-        try {
-            autoSyncConfigRepository.save(AutoSyncConfig.from(indexInfo));
-        } catch (DataIntegrityViolationException e) {
-            throw new BusinessException(AutoSyncConfigErrorCode.ALREADY_EXISTS);
-        }
+        autoSyncConfigInitializer.initializeFor(indexInfo);
     }
 
     @Override
