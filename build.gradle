@@ -136,7 +136,9 @@ tasks.register('installIntellijCodeStyle', Copy) {
 }
 
 // build 실행 시에도 위 세 가지가 같이 적용되게 남겨둠 (수동으로 다시 설치하고 싶을 때 `./gradlew installGitHooks` 등으로 재실행 가능)
-if (!System.getenv('CI')) {
+def isCI = System.getenv('CI') != null
+
+if (!isCI) {
   tasks.named('build') {
     dependsOn tasks.named('installGitHooks')
     dependsOn tasks.named('installGitMessageTemplate')
@@ -158,7 +160,7 @@ if (file("$rootDir/.git/hooks").exists()) {
 		}
 	}
 	['git', 'config', 'commit.template', '.gitmessage.txt'].execute(null, rootDir).waitFor()
-	if (file("$rootDir/.idea").exists()) {
+  if (!isCI && file("$rootDir/.git/hooks").exists()) {
 		copy {
 			from "$rootDir/config/intellij/codeStyles"
 			into "$rootDir/.idea/codeStyles"
