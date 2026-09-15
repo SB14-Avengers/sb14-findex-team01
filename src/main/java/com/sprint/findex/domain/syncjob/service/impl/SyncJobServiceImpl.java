@@ -1,6 +1,6 @@
 package com.sprint.findex.domain.syncjob.service.impl;
 
-import com.sprint.findex.domain.autosyncconfig.service.AutoSyncConfigInitializer;
+import com.sprint.findex.domain.autosyncconfig.service.impl.AutoSyncConfigInitializer;
 import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.domain.indexinfo.repository.IndexInfoRepository;
 import com.sprint.findex.domain.openapi.client.OpenApiClient;
