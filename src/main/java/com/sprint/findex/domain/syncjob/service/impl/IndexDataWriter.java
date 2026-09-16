@@ -13,6 +13,8 @@ import com.sprint.findex.global.type.JobResult;
 import com.sprint.findex.global.type.JobType;
 import com.sprint.findex.global.type.SourceType;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -31,8 +33,24 @@ public class IndexDataWriter {
     private final IndexInfoRepository indexInfoRepository;
 
     @Transactional
+    public List<SyncJobDto> syncChunk(
+            List<Long> indexInfoIds, List<StockMarketIndexItem> items, String worker) {
+        List<SyncJobDto> results = new ArrayList<>(items.size());
+        for (int i = 0; i < items.size(); i++) {
+            results.add(writeOne(indexInfoIds.get(i), worker, items.get(i)));
+        }
+        return results;
+    }
+
+    @Transactional
     public SyncJobDto sync(Long indexInfoId, String worker, StockMarketIndexItem item) {
+        return writeOne(indexInfoId, worker, item);
+    }
+
+    private SyncJobDto writeOne(Long indexInfoId, String worker, StockMarketIndexItem item) {
         IndexInfo indexInfo = indexInfoRepository.getReferenceById(indexInfoId);
+
+        // 지수 정보랑 날짜로 찾을 때 인덱스를 사용하여 시간 절약 (실제 테스트 결과: 큰 의미 X)
         Optional<IndexData> existing =
                 indexDataRepository.findByIndexInfoIdAndBaseDate(indexInfoId, item.basDt());
 

@@ -43,6 +43,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 public class SyncJobServiceImpl implements SyncJobService {
     private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
     private static final int MAX_LOOKBACK_DAYS = 10;
+    private static final int CHUNK_SIZE = 50;
     private final OpenApiClient openApiClient;
     private final IndexInfoRepository indexInfoRepository;
     private final SyncJobRepository syncJobRepository;
@@ -123,7 +124,6 @@ public class SyncJobServiceImpl implements SyncJobService {
 
     @Override
     public List<SyncJobDto> indexDataSync(SyncJobCreateRequest request) {
-        List<SyncJobDto> syncJobDtoList = new ArrayList<>();
         String worker = clientIpResolver();
         List<Long> indexInfoIds = request.indexInfoIds();
         LocalDate baseDateFrom = request.baseDateFrom();
@@ -144,15 +144,20 @@ public class SyncJobServiceImpl implements SyncJobService {
             List<StockMarketIndexItem> items =
                     fetchItems(new StockMarketIndexQuery(null, null, baseDateFrom, baseDateTo));
 
+            List<Long> targetIds = new ArrayList<>();
+            List<StockMarketIndexItem> targetItems = new ArrayList<>();
+
             for (StockMarketIndexItem item : items) {
                 IndexInfo indexInfo = indexInfoMap.get(indexKey(item.idxCsf(), item.idxNm()));
 
                 if (indexInfo == null) {
                     continue;
                 }
-                syncJobDtoList.add(syncOne(indexInfo.getId(), worker, item));
+                targetIds.add(indexInfo.getId());
+                targetItems.add(item);
             }
-            return syncJobDtoList;
+
+            return syncInChunks(targetIds, targetItems, worker);
         }
 
         IndexInfo indexInfo =
@@ -166,13 +171,17 @@ public class SyncJobServiceImpl implements SyncJobService {
                                 indexInfo.getIndexName(), null, baseDateFrom, baseDateTo));
         String indexClassification = indexInfo.getIndexClassification();
 
+        List<Long> targetIds = new ArrayList<>();
+        List<StockMarketIndexItem> targetItems = new ArrayList<>();
+
         for (StockMarketIndexItem item : items) {
             if (!indexClassification.equals(item.idxCsf())) {
                 continue;
             }
-            syncJobDtoList.add(syncOne(indexInfo.getId(), worker, item));
+            targetIds.add(indexInfo.getId());
+            targetItems.add(item);
         }
-        return syncJobDtoList;
+        return syncInChunks(targetIds, targetItems, worker);
     }
 
     @Override
@@ -276,6 +285,39 @@ public class SyncJobServiceImpl implements SyncJobService {
                     exception.getMessage());
             throw new BusinessException(SyncJobErrorCode.OPEN_API_CALL_FAILED);
         }
+    }
+
+    private List<SyncJobDto> syncInChunks(
+            List<Long> indexInfoIds, List<StockMarketIndexItem> items, String worker) {
+        List<SyncJobDto> results = new ArrayList<>(items.size());
+        int chunkNo = 0;
+        int retryCount = 0;
+
+        for (int start = 0; start < items.size(); start += CHUNK_SIZE) {
+            int end = Math.min(start + CHUNK_SIZE, items.size());
+            List<Long> idChunk = indexInfoIds.subList(start, end);
+            List<StockMarketIndexItem> itemChunk = items.subList(start, end);
+
+            chunkNo++;
+            long chunkStart = System.currentTimeMillis();
+            try {
+                results.addAll(indexDataWriter.syncChunk(idChunk, itemChunk, worker));
+            } catch (DataAccessException exception) {
+                retryCount++;
+                log.warn("[연동] 청크 저장 실패, 건별 재시도: size={}", itemChunk.size(), exception);
+                for (int i = 0; i < itemChunk.size(); i++) {
+                    results.add(syncOne(idChunk.get(i), worker, itemChunk.get(i)));
+                }
+            }
+            log.info(
+                    "[연동] 청크 {} size={} {}ms",
+                    chunkNo,
+                    itemChunk.size(),
+                    System.currentTimeMillis() - chunkStart);
+        }
+
+        log.info("[연동] 청크 {}개, 재시도 {}개", chunkNo, retryCount);
+        return results;
     }
 
     private SyncJobDto syncOne(Long indexInfoId, String worker, StockMarketIndexItem item) {
