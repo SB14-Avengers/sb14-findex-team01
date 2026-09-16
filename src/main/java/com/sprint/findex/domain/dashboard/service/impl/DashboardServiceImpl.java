@@ -77,27 +77,12 @@ public class DashboardServiceImpl implements DashboardService {
     @Override
     public List<IndexPerformanceDto> getFavorite(PerformancePeriodType periodType) {
 
-        // 반환할것
-        List<IndexPerformanceDto> dto = new ArrayList<>();
-
-        // 일단 일간, 주간, 월간 보자
-        LocalDate startDate =
-                switch (periodType) {
-                    case DAILY -> LocalDate.now().minusDays(1);
-                    case WEEKLY -> LocalDate.now().minusWeeks(1);
-                    case MONTHLY -> LocalDate.now().minusMonths(1);
-                };
-
-        // 즐겨찾기한거 infoList
-        List<IndexInfo> infoList = indexInfoRepository.findByFavoriteTrue();
-
-        for (IndexInfo indexInfo : infoList) {
-
-            IndexPerformanceDto indexPerformanceDto = indexPerformance(indexInfo, startDate);
-            if (indexPerformanceDto == null) continue;
-
-            dto.add(indexPerformanceDto);
-        }
+        // findByFavoriteTrue -> 즐거찾기 한거
+        List<IndexPerformanceDto> dto =
+                indexInfoRepository.findByFavoriteTrue().stream()
+                        .map(indexInfo -> indexPerformance(indexInfo, periodType))
+                        .filter(Objects::nonNull)
+                        .toList();
 
         return dto;
     }
@@ -106,15 +91,7 @@ public class DashboardServiceImpl implements DashboardService {
     public List<RankedIndexPerformanceDto> getRankedIndex(
             Long indexInfoId, PerformancePeriodType periodType, Integer limit) {
         // 반환할 것 선언
-        List<IndexPerformanceDto> tempDto = new ArrayList<>();
         List<RankedIndexPerformanceDto> dto = new ArrayList<>();
-
-        LocalDate startDate =
-                switch (periodType) {
-                    case DAILY -> LocalDate.now().minusDays(1);
-                    case WEEKLY -> LocalDate.now().minusWeeks(1);
-                    case MONTHLY -> LocalDate.now().minusMonths(1);
-                };
 
         List<IndexInfo> infoList = indexInfoRepository.findAll();
 
@@ -126,15 +103,12 @@ public class DashboardServiceImpl implements DashboardService {
                             .toList();
         }
 
-        for (IndexInfo indexInfo : infoList) {
-            IndexPerformanceDto indexPerformanceDto = indexPerformance(indexInfo, startDate);
-            if (indexPerformanceDto == null) continue;
-
-            tempDto.add(indexPerformanceDto);
-        }
-
-        // 내림차순 정렬
-        tempDto.sort((o1, o2) -> o2.fluctuationRate().compareTo(o1.fluctuationRate()));
+        List<IndexPerformanceDto> tempDto =
+                infoList.stream()
+                        .map(indexInfo -> indexPerformance(indexInfo, periodType))
+                        .filter(Objects::nonNull)
+                        .sorted((o1, o2) -> o2.fluctuationRate().compareTo(o1.fluctuationRate()))
+                        .toList();
 
         int rank = 1;
         for (IndexPerformanceDto temp : tempDto) {
@@ -190,12 +164,23 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     // 현재가, 과거가, 대비, 등락률 계산해서 IndexPerformanceDto로 묶어서 반환한다.
-    // 인자로 받을 것 indexInfo, startDate
-    private IndexPerformanceDto indexPerformance(IndexInfo indexInfo, LocalDate startDate) {
+    // 인자로 받을 것 indexInfo, periodType
+    private IndexPerformanceDto indexPerformance(
+            IndexInfo indexInfo, PerformancePeriodType periodType) {
 
-        BigDecimal currentPrice = indexDataRepository.findByCurrentPrice(indexInfo.getId());
+        IndexData current = indexDataRepository.findLatest(indexInfo.getId()).orElse(null);
+        if (current == null) return null;
+
+        LocalDate targetDate =
+                switch (periodType) {
+                    case DAILY -> current.getBaseDate().minusDays(1);
+                    case WEEKLY -> current.getBaseDate().minusWeeks(1);
+                    case MONTHLY -> current.getBaseDate().minusMonths(1);
+                };
+
+        BigDecimal currentPrice = current.getClosingPrice();
         BigDecimal beforePrice =
-                indexDataRepository.findByBeforePrice(startDate, indexInfo.getId());
+                indexDataRepository.findByBeforePrice(targetDate, indexInfo.getId());
         // 값이 비어있거나, beforePrice가 0이면(0으로 나누는것 방지)
         if (currentPrice == null
                 || beforePrice == null
