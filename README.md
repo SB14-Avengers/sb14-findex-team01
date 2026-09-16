@@ -1,4 +1,4 @@
-# 📈 Findex
+# 📈 프로젝트 소개
 
 ### 금융위원회 Open API 기반 한국 주가지수 분석 서비스
 
@@ -10,92 +10,56 @@
 
 ---
 
-## 👥 Contributors
+## 🧑‍💻 팀원 구성
 
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/Hanna-log">
-        <img src="https://github.com/Hanna-log.png" width="120px;" alt="Hanna"/>
-        <br />
-        <sub><b>이승현</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/kim-yejunn">
-        <img src="https://github.com/kim-yejunn.png" width="120px;" alt="김예준"/>
-        <br />
-        <sub><b>김예준</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/lsc0869">
-        <img src="https://github.com/lsc0869.png" width="120px;" alt="lsc0869"/>
-        <br />
-        <sub><b>이수찬</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/WinLike-dev">
-        <img src="https://github.com/WinLike-dev.png" width="120px;" alt="WinLike"/>
-        <br />
-        <sub><b>김승호</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/xian980">
-        <img src="https://github.com/xian980.png" width="120px;" alt="SungJun"/>
-        <br />
-        <sub><b>강성준</b></sub>
-      </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/yyy2724">
-        <img src="https://github.com/yyy2724.png" width="120px;" alt="yyy2724"/>
-        <br />
-        <sub><b>김양현</b></sub>
-      </a>
-    </td>
-  </tr>
-</table>
+|                                  이승현                                  |                                 김예준                                 |                                   김승호                                   |                                     이수찬                                     |                                    김양현                                    |                                강성준                                |
+|:------------------------------------------------------------------------:|:----------------------------------------------------------------------:|:--------------------------------------------------------------------------:|:------------------------------------------------------------------------------:|:----------------------------------------------------------------------------:|:--------------------------------------------------------------------:|
+| <img src="https://github.com/Hanna-log.png" width="120" alt="pintordev"> | <img src="https://github.com/kim-yejunn.png" width="120" alt="gim00001"> | <img src="https://github.com/WinLike-dev.png" width="120" alt="rhksgml54"> | <img src="https://github.com/lsc0869.png" width="120" alt="jeongjae5310"> | <img src="https://github.com/yyy2724.png" width="120" alt="Junyeong-An"> | <img src="https://github.com/xian980.png" width="120" alt="shyunii"> |
+|                [Hanna-log](https://github.com/Hanna-log)                 |                [kim-yejunn](https://github.com/kim-yejunn)                 |               [WinLike-dev](https://github.com/WinLike-dev)                |                [lsc0869](https://github.com/lsc0869)                 |                [yyy2724](https://github.com/yyy2724)                 |                [xian980](https://github.com/xian980)                 |
+
 
 ---
 
 ## 🛠 Tech Stack
 
 ### Backend
+- ![Java](https://img.shields.io/badge/Java-17+-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot%203.5.13-6DB33F?style=flat-square&logo=springboot&logoColor=white)
+![Spring Data JPA](https://img.shields.io/badge/Spring%20Data%20JPA-6DB33F?style=flat-square&logoColor=white)
+![Spring Validation](https://img.shields.io/badge/Spring%20Validation-6DB33F?style=flat-square&logo=spring&logoColor=white)
 
-![Java](https://img.shields.io/badge/Java-17+-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?style=flat-square&logo=springboot&logoColor=white)
-![Spring Data JPA](https://img.shields.io/badge/Spring%20Data%20JPA-6DB33F?style=flat-square&logo=spring&logoColor=white)
+- ![QueryDSL](https://img.shields.io/badge/QueryDSL%205.1.0-0769AD?style=flat-square&logo=hibernate&logoColor=white)
+![MapStruct](https://img.shields.io/badge/MapStruct%201.5.5-6DB33F?style=flat-square&logo=spring&logoColor=white)
+![Lombok](https://img.shields.io/badge/Lombok%201.18-BC4521?style=flat-square&logoColor=white)
 
-### Database
+### Database & Infra
 
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
-![H2](https://img.shields.io/badge/H2-Database-1E90FF?style=flat-square)
+- ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![HikariCP](https://img.shields.io/badge/HikariCP-FF6F00?style=flat-square&logoColor=white)
+![Actuator](https://img.shields.io/badge/Spring%20Actuator-6DB33F?style=flat-square&logo=spring&logoColor=white)
+![Railway](https://img.shields.io/badge/Railway-0B0D0E?style=flat-square&logo=railway&logoColor=white)
+
+### Collaboration
+
+- ![Git](https://img.shields.io/badge/Git-F05032?style=flat-square&logo=Git&logoColor=white)
+- ![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)
+- ![Discord](https://img.shields.io/badge/Discord-5865F2?style=flat-square&logo=discord&logoColor=white)
+- ![Notion](https://img.shields.io/badge/Notion-000000?style=flat-square&logo=notion&logoColor=white)
+
 
 ### Documentation
 
-![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=flat-square&logo=swagger&logoColor=black)
+- ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=flat-square&logo=swagger&logoColor=black)
 
 ### External API
 
+-   <img src="https://img.shields.io/badge/RestClient-6DB33F?style=flat-square&logo=spring&logoColor=white"/>
 - 금융위원회 지수시세정보 Open API
-- Spring RestClient
 
 ### Scheduling
 
 - Spring Scheduler
 
-### Collaboration
-
-- Git / GitHub
-- Jira
-- Notion
-
-### Deployment
-
-- Railway
 
 ---
 
@@ -116,9 +80,48 @@
 ## 🛠️ 팀원별 구현 기능 상세
 
 <details>
-<summary>🧑‍💻이승현 (팀장)</summary>
+<summary>🧑‍💻이승현 </summary>
 
-(내용 준비 중)
+<br />
+
+**⏱️ 자동 연동 설정 관리**
+
+#### 자동 연동 설정 자동 생성
+
+* 지수 정보 등록 시 `AutoSyncConfig`가 함께 생성되도록 구현 (별도 등록 API 없음 — 지수 등록에 종속)
+* 지수 정보 삭제 시 `ON DELETE CASCADE`로 자동 연동 설정도 함께 삭제
+
+#### 자동 연동 설정 수정 API
+
+* `enabled` on/off 토글 PATCH API 구현
+* `id`가 없거나 `enabled` 값이 누락되면 400, 존재하지 않는 설정이면 404 처리
+* 응답 `200 OK`, `AutoSyncConfigDto` 반환
+
+#### 자동 연동 설정 목록 조회
+
+* `indexInfoId` / `enabled` 필터 + 정렬 지원, 커서 기반 페이지네이션
+* QueryDSL 동적 쿼리 — `enabled`(boolean) 정렬 시 동점 그룹 안에서는 `id`로 보조 정렬
+
+#### 자동 연동 배치 스케줄러
+
+* 지수별로 활성화된 자동 연동 설정을 기준으로, 매일 정해진 시각(오후 2시 30분)에 Open API에서 최신 지수 데이터를 자동 수집
+* 지수마다 마지막으로 어디까지 가져왔는지 계산해 그 이후 구간만 연동 (`resolveFromDate`)
+* `AtomicBoolean`으로 배치 중복 실행 방지
+
+#### 배치 성공/실패 판정 및 이력 저장 정확성
+
+<p align="left">
+  <img width="700" alt="연동 관리 대시보드 - 자동 연동 성공/실패 현황 및 이력" src="https://github.com/user-attachments/assets/eb0626b2-59a3-4453-b456-1ab948f914bd" />
+</p>
+
+* 연동 결과 리스트가 비어 있으면 무조건 "성공"으로 판정되던 조건에 `!isEmpty()` 검증 추가
+* 데이터 0건 · 예외 발생 두 경우 모두 `sync_jobs`에 `FAILED` 이력을 직접 저장하도록 보강
+* 활성화된 지수 목록 중 정상 성공 처리를 프로덕션에서 직접 확인
+
+#### 영구 실패 방지 재시도 로직
+
+* 마지막 성공일 다음 날부터 재연동하되, 아직 재시도 안 된 실패 날짜가 있으면 그 날짜부터 우선 재시도
+* 너무 오래된 실패까지 훑지 않도록 최대 7일(lookback)까지만 재시도 대상으로 포함
 
 </details>
 
