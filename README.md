@@ -163,7 +163,7 @@
 
 <details>
 <summary>클릭해서 전체 구조 보기</summary>
-  
+
 ```
 src
 ├── main
@@ -375,12 +375,12 @@ build.gradle
 
 ## 📝 프로젝트 개인 개발 리포트
 
-- [이승현](https://few-patch-6f7.notion.site/a8365019b736835d9afe01b38da64f28)
+- [이승현](https://few-patch-6f7.notion.site/3dd65019b73680d8b285d5fdffe31b48)
 - [김예준](https://few-patch-6f7.notion.site/dd465019b736838db1ab819bb609c022)
 - [김승호](https://few-patch-6f7.notion.site/6d265019b73682cb9abf8177e79d308f)
-- [강성준](https://few-patch-6f7.notion.site/76d65019b736837597d681bc0a8b398b)
+- [강성준](https://few-patch-6f7.notion.site/3dd65019b73680158c0ff57a76a3ce83)
 - [김양현](https://few-patch-6f7.notion.site/de065019b736825c9df20105a575d54d)
-- [이수찬](https://few-patch-6f7.notion.site/abf65019b736820cac5781bd32aaecd4)
+- [이수찬](https://few-patch-6f7.notion.site/3dd65019b7368013ba85d0e33e1bb9db)
 
 
 
