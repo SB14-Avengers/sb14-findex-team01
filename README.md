@@ -109,7 +109,7 @@
 | 요구사항 명세서 | [요구사항 구현 일정관리](https://few-patch-6f7.notion.site/e6065019b73683e08d2b819faa0b0dc5?v=caa65019b73682b6a428084967fae726) | 요구사항 구현 일정관리 |
 | API Docs | [Swagger UI](https://sb14-findex-team01-production.up.railway.app/swagger-ui/index.html) | RESTful API 명세서 |
 | Design | [ERD & 배포 다이어그램](https://few-patch-6f7.notion.site/ERD-9b565019b73683f398f20174af387e00) | 데이터베이스 구조 설계도 |
-| 발표 자료 | [발표 자료]([링크](https://drive.google.com/file/d/13RAchL-MK7qadPWmAEE_c0_7ruD0_n60/view)) | 발표 자료 |
+| 발표 자료 | [발표 자료](https://drive.google.com/file/d/13RAchL-MK7qadPWmAEE_c0_7ruD0_n60/view) | 발표 자료 |
 
 ---
 
