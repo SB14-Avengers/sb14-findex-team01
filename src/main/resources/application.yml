@@ -50,6 +50,6 @@ findex:
     # (로그에는 프로파일과 무관하게 항상 전체 스택트레이스가 남으므로 디버깅에는 지장 없음)
     expose-details: false
   scheduler:
-    auto-sync-cron: "0 0 6 * * *" # 매일 새벽 6시
+    auto-sync-cron: "0 30 14 * * *" # 매일 오후 2시 30분
 
 # Swagger 경로

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@Tag(name = "지수 데이터 API", description = "지수 데이터 관리 API")
+@Tag(name = "지수 데이터 관리", description = "지수 데이터 API")
 @RequestMapping(value = "/api")
 public interface DashboardApi {
 
@@ -37,7 +37,7 @@ public interface DashboardApi {
     ResponseEntity<List<IndexPerformanceDto>> favoriteSelect(
             @RequestParam(defaultValue = "DAILY") PerformancePeriodType periodType);
 
-    @Tag(name = "지수 정보 API", description = "지수 정보 목록 조회")
+    @Tag(name = "지수 정보 관리", description = "지수 정보 API")
     @Operation(summary = "지수 정보 요약 목록 조회")
     @GetMapping(value = "/index-infos/summaries")
     ResponseEntity<List<IndexInfoSummaryDto>> summaries();

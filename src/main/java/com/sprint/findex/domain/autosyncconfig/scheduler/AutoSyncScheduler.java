@@ -15,7 +15,7 @@ public class AutoSyncScheduler {
     private final AutoSyncConfigService autoSyncConfigService;
     private static final AtomicBoolean running = new AtomicBoolean(false);
 
-    @Scheduled(cron = "${findex.scheduler.auto-sync-cron:0 0 6 * * *}", zone = "Asia/Seoul")
+    @Scheduled(cron = "${findex.scheduler.auto-sync-cron:0 30 14 * * *}", zone = "Asia/Seoul")
     public void runAutoSync() {
         if (!running.compareAndSet(false, true)) {
             log.warn("[자동연동] 이전 배치가 아직 끝나지 않아 이번 실행을 건너 뜁니다.");

@@ -11,6 +11,8 @@ import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
 import com.sprint.findex.domain.syncjob.dto.request.SyncJobCreateRequest;
 import com.sprint.findex.domain.syncjob.dto.request.SyncJobSearchRequest;
 import com.sprint.findex.domain.syncjob.dto.response.SyncJobDto;
+import com.sprint.findex.domain.syncjob.entity.SyncJob;
+import com.sprint.findex.domain.syncjob.repository.SyncJobRepository;
 import com.sprint.findex.domain.syncjob.service.SyncJobService;
 import com.sprint.findex.global.common.CursorPageResponse;
 import com.sprint.findex.global.exception.BusinessException;
@@ -37,9 +39,12 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
 
     private static final int MAX_FAILED_RETRY_DAYS = 7;
 
+    private static final String SYSTEM_WORKER = "system";
+
     private final AutoSyncConfigRepository autoSyncConfigRepository;
     private final AutoSyncConfigMapper autoSyncConfigMapper;
     private final SyncJobService syncJobService;
+    private final SyncJobRepository syncJobRepository;
     private final AutoSyncConfigInitializer autoSyncConfigInitializer;
 
     @Override
@@ -114,12 +119,21 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
                 results.add(syncOneIndex(target));
             } catch (Exception e) {
                 log.error("[자동연동] 실패 : indexInfoId={}", indexInfoId, e);
+                syncJobRepository.save(
+                        SyncJob.of(
+                                JobType.INDEX_DATA,
+                                indexInfo,
+                                today,
+                                SYSTEM_WORKER,
+                                JobResult.FAILED));
                 results.add(new AutoSyncResult(indexInfoId, false));
             }
         }
 
         long successCount = results.stream().filter(AutoSyncResult::success).count();
-        log.info("[자동연동] 배치 완료 : 총 {}건 중 성공 {}건", results.size(), successCount);
+        long failedCount = results.size() - successCount;
+        log.info(
+                "[자동연동] 배치 완료 : 총 {}건 중 성공 {}건, 실패 {}건", results.size(), successCount, failedCount);
     }
 
     private LocalDate resolveFromDate(IndexInfo indexInfo, LocalDate today) {
@@ -174,23 +188,37 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
 
     private SyncTarget resolveSyncTarget(IndexInfo indexInfo, LocalDate today) {
         LocalDate from = resolveFromDate(indexInfo, today);
-        return new SyncTarget(indexInfo.getId(), from, today);
+        return new SyncTarget(indexInfo, from, today);
     }
 
     private AutoSyncResult syncOneIndex(SyncTarget target) {
+        Long indexInfoId = target.indexInfo().getId();
+
         if (target.from().isAfter(target.to())) {
-            return new AutoSyncResult(target.indexInfoId(), true);
+            return new AutoSyncResult(indexInfoId, true);
         }
 
         SyncJobCreateRequest request =
-                new SyncJobCreateRequest(List.of(target.indexInfoId()), target.from(), target.to());
+                new SyncJobCreateRequest(List.of(indexInfoId), target.from(), target.to());
         List<SyncJobDto> syncJobDtos = syncJobService.indexDataSync(request);
 
-        boolean success = syncJobDtos.stream().noneMatch(dto -> dto.result() == JobResult.FAILED);
-        return new AutoSyncResult(target.indexInfoId(), success);
+        if (syncJobDtos.isEmpty()) {
+            syncJobRepository.save(
+                    SyncJob.of(
+                            JobType.INDEX_DATA,
+                            target.indexInfo(),
+                            target.from(),
+                            SYSTEM_WORKER,
+                            JobResult.FAILED));
+        }
+
+        boolean success =
+                !syncJobDtos.isEmpty()
+                        && syncJobDtos.stream().noneMatch(dto -> dto.result() == JobResult.FAILED);
+        return new AutoSyncResult(indexInfoId, success);
     }
 
-    private record SyncTarget(Long indexInfoId, LocalDate from, LocalDate to) {}
+    private record SyncTarget(IndexInfo indexInfo, LocalDate from, LocalDate to) {}
 
     private record AutoSyncResult(Long indexInfoId, boolean success) {}
 }
