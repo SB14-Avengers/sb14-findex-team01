@@ -375,12 +375,12 @@ build.gradle
 
 ## 📝 프로젝트 개인 개발 리포트
 
-- [이승현](https://few-patch-6f7.notion.site/a8365019b736835d9afe01b38da64f28)
+- [이승현](https://few-patch-6f7.notion.site/3dd65019b736803086d5d61a246a6441)
 - [김예준](https://few-patch-6f7.notion.site/dd465019b736838db1ab819bb609c022)
 - [김승호](https://few-patch-6f7.notion.site/6d265019b73682cb9abf8177e79d308f)
-- [강성준](https://few-patch-6f7.notion.site/76d65019b736837597d681bc0a8b398b)
+- [강성준](https://few-patch-6f7.notion.site/3dd65019b7368019aa22f2698fe9816a)
 - [김양현](https://few-patch-6f7.notion.site/de065019b736825c9df20105a575d54d)
-- [이수찬](https://few-patch-6f7.notion.site/abf65019b736820cac5781bd32aaecd4)
+- [이수찬](https://few-patch-6f7.notion.site/3dd65019b7368047bf08c5b368930ae5)
 
 
 
