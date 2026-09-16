@@ -119,7 +119,9 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
         }
 
         long successCount = results.stream().filter(AutoSyncResult::success).count();
-        log.info("[자동연동] 배치 완료 : 총 {}건 중 성공 {}건", results.size(), successCount);
+        long failedCount = results.size() - successCount;
+        log.info(
+                "[자동연동] 배치 완료 : 총 {}건 중 성공 {}건, 실패 {}건", results.size(), successCount, failedCount);
     }
 
     private LocalDate resolveFromDate(IndexInfo indexInfo, LocalDate today) {
@@ -186,7 +188,9 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
                 new SyncJobCreateRequest(List.of(target.indexInfoId()), target.from(), target.to());
         List<SyncJobDto> syncJobDtos = syncJobService.indexDataSync(request);
 
-        boolean success = syncJobDtos.stream().noneMatch(dto -> dto.result() == JobResult.FAILED);
+        boolean success =
+                !syncJobDtos.isEmpty()
+                        && syncJobDtos.stream().noneMatch(dto -> dto.result() == JobResult.FAILED);
         return new AutoSyncResult(target.indexInfoId(), success);
     }
 
