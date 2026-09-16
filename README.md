@@ -115,10 +115,6 @@
 
 ## 🛠️ 팀원별 구현 기능 상세
 
-<details>
-<summary>🧑‍💻이승현 (팀장)</summary>
-
-(내용 준비 중)
 
 </details>
 
@@ -157,13 +153,20 @@
 
 </details>
 
+<details>
+<summary>🧑‍💻이승현 </summary>
+
+(내용 준비 중)
+
+</details>
+
 ---
 
 ## 📂 파일 구조
 
 <details>
 <summary>클릭해서 전체 구조 보기</summary>
-  
+
 ```
 src
 ├── main
@@ -380,7 +383,8 @@ build.gradle
 - [김승호](https://few-patch-6f7.notion.site/6d265019b73682cb9abf8177e79d308f)
 - [강성준](https://few-patch-6f7.notion.site/3dd65019b7368019aa22f2698fe9816a)
 - [김양현](https://few-patch-6f7.notion.site/de065019b736825c9df20105a575d54d)
-- [이수찬](https://few-patch-6f7.notion.site/3dd65019b7368047bf08c5b368930ae5)
+- [이수찬](https://app.notion.com/p/3dd65019b7368013ba85d0e33e1bb9db?source=copy_link)
+
 
 
 
