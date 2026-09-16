@@ -372,7 +372,9 @@ build.gradle
 
 ## 🌐 구현 홈페이지
 
-[개발 홈페이지 가기](https://sb14-findex-team01-production.up.railway.app)
+[<img width="1280" height="646" alt="findex_finish" src="https://github.com/user-attachments/assets/320396bf-459d-41c3-a43b-5e86741057f8" />](https://sb14-findex-team01-production.up.railway.app)
+
+- 위 영상 클릭할 경우 구현 사이트로 이동됩니다.
 
 ---
 
