@@ -81,6 +81,7 @@
 ### External API
 
 - 금융위원회 지수시세정보 Open API
+- Spring RestClient
 
 ### Scheduling
 
@@ -98,82 +99,55 @@
 
 ---
 
-## ⚡ Anangers_1팀
+## ⚡ SB14-Avengers
 
-[📎 팀 협업 문서](https://app.notion.com/p/Avengers-SB14-Findex-Team-01)
+[📎 팀 협업 문서](https://few-patch-6f7.notion.site/Avengers-SB14-Findex-Team-01-a2665019b7368330998b013c6a469ab7)
 
 ---
 
 ## 🛠️ 팀원별 구현 기능 상세
 
-### 김예준
+<details>
+<summary>🧑‍💻이승현 (팀장)</summary>
 
-<img width="1301" height="619" alt="image" src="https://github.com/user-attachments/assets/85fee8dd-b2c0-4dc1-a0ad-7b9324697f8e" />
+(내용 준비 중)
 
-**🔁 연동 작업 관리**
+</details>
 
-- 지수 데이터 연동 실행 
-- 지수 정보 연동 실행 
-- 연동 작업 목록 조회 
+<details>
+<summary>🧑‍💻김예준</summary>
 
-### 이승현
+(내용 준비 중)
 
-<img width="1397" height="684" alt="image" src="https://github.com/user-attachments/assets/d900180c-e268-4e17-b35f-e38274186b37" />
+</details>
 
+<details>
+<summary>🧑‍💻김승호</summary>
 
-**⚙️ 자동 연동 설정**
-- 지수 등록 시 자동 연동 설정 자동 생성 
-- 자동 연동 설정 수정 
-- Scheduler 기본 설정
-- 배치 실행 로직 구현
-- 자동 연동 설정 목록 조회
+(내용 준비 중)
 
-### 김승호
+</details>
 
+<details>
+<summary>🧑‍💻강성준</summary>
 
+(내용 준비 중)
 
-**🔗 Open API 연동**
-- WebClient 호출 구현 
-- Open API 응답 구조 파악 및 DTO 매핑
+</details>
 
-### 강성준
+<details>
+<summary>🧑‍💻김양현</summary>
 
-<img width="1229" height="694" alt="image" src="https://github.com/user-attachments/assets/225aad23-9e35-4d69-ae78-f0bba0482f9a" />
+(내용 준비 중)
 
+</details>
 
-**🗂️ 지수 데이터 관리**
-- 지수 데이터 등록
-- 지수 데이터 단건 조회
-- 지수 데이터 수정 
-- 지수 데이터 삭제
-- 지수 데이터 CSV Export
-- 지수 데이터 목록 조회 
+<details>
+<summary>🧑‍💻이수찬</summary>
 
-### 김양현
+(내용 준비 중)
 
-<img width="1374" height="453" alt="image" src="https://github.com/user-attachments/assets/0dd1f174-85b2-4552-b383-db6ec49a3c11" />
-
-
-
-**📊 대시보드**
-- 지수 정보 요약 조회
-- 즐겨찾기 지수 성과 요약
-- 전일/전주/전월 대비 성과 랭킹
-- 지수 시계열 차트 조회
-- 이동평균선(MA5/MA20) 계산 로직 구현
-
-### 이수찬
-
-<img width="1414" height="514" alt="image" src="https://github.com/user-attachments/assets/f0cc029d-5368-4f5b-9938-aaecf25ad84d" />
-
-
-**📈 지수 정보 관리**
-- 지수 정보 등록 
-- 지수 정보 수정
-- 지수 정보 삭제 
-- 지수 정보 목록 조회
-- 지수 분류명 및 지수명 검색 
-- 커서 기반 페이지네이션
+</details>
 
 ---
 
@@ -391,8 +365,14 @@ build.gradle
 
 ---
 
-## 🎬 프로젝트 회고록
-[회고 문서 링크](https://app.notion.com/p/4L-Action-Plan)
+## 📝 프로젝트 개인 개발 리포트
+
+- [이승현](https://few-patch-6f7.notion.site/a8365019b736835d9afe01b38da64f28)
+- [김예준](https://few-patch-6f7.notion.site/dd465019b736838db1ab819bb609c022)
+- [김승호](https://few-patch-6f7.notion.site/6d265019b73682cb9abf8177e79d308f)
+- [강성준](https://few-patch-6f7.notion.site/76d65019b736837597d681bc0a8b398b)
+- [김양현](https://few-patch-6f7.notion.site/de065019b736825c9df20105a575d54d)
+- [이수찬](https://few-patch-6f7.notion.site/abf65019b736820cac5781bd32aaecd4)
 
 
 
