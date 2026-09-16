@@ -180,7 +180,32 @@
 <details>
 <summary>🧑‍💻강성준</summary>
 
-(내용 준비 중)
+<br />
+
+**📊 지수 데이터 관리**
+
+#### 지수 데이터 CRUD
+
+* 지수 데이터 등록·단건 조회·부분 수정·삭제 API 구현
+* 등록 시 지수 정보 존재 여부와 `(지수, 기준일)` 중복 여부 검증
+* 사용자가 직접 등록한 데이터는 `USER` 소스 타입으로 저장
+* 생성 `201 Created`, 조회·수정 `200 OK`, 삭제 `204 No Content` 응답 적용
+* 수정은 PATCH 방식으로 요청에 포함된 필드만 반영
+
+#### 지수 데이터 목록 조회
+
+* 지수 ID, 시작일·종료일 조건으로 데이터 필터링
+* QueryDSL 기반 동적 정렬 및 커서 페이지네이션 구현
+* `size + 1` 조회와 정렬값·ID 보조 키 비교로 안정적인 다음 페이지 조회
+* 정렬 필드, 정렬 방향, 커서 형식, 날짜 범위를 사전에 검증하여 잘못된 요청은 `400 Bad Request`로 처리
+
+#### CSV Export
+
+* 목록 조회와 동일한 지수·기간·정렬 조건을 유지한 CSV 다운로드 구현
+* `StreamingResponseBody`로 서버 디스크 저장 없이 응답 스트림에 파일 생성
+* 1,000건 단위 커서 조회와 `EntityManager.clear()`를 적용해 대량 데이터 처리 시 메모리 부담 완화
+* 한글 헤더와 UTF-8 BOM을 적용해 스프레드시트 프로그램에서 인코딩 문제 없이 확인 가능
+* 잘못된 정렬·날짜 범위 요청은 다운로드 전에 검증하여 CSV 대신 JSON 오류 응답 반환
 
 </details>
 
@@ -421,7 +446,7 @@ build.gradle
 - [이승현](https://few-patch-6f7.notion.site/3dd65019b73680d8b285d5fdffe31b48)
 - [김예준](https://few-patch-6f7.notion.site/dd465019b736838db1ab819bb609c022)
 - [김승호](https://few-patch-6f7.notion.site/6d265019b73682cb9abf8177e79d308f)
-- [강성준](https://few-patch-6f7.notion.site/3dd65019b73680158c0ff57a76a3ce83)
+- [강성준](https://few-patch-6f7.notion.site/3dd65019b73680158c0ff57a76a3ce83?pvs=74)
 - [김양현](https://few-patch-6f7.notion.site/de065019b736825c9df20105a575d54d)
 - [이수찬](https://few-patch-6f7.notion.site/3dd65019b7368013ba85d0e33e1bb9db)
 
