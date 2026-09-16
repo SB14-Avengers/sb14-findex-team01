@@ -119,6 +119,13 @@ public class AutoSyncConfigServiceImpl implements AutoSyncConfigService {
                 results.add(syncOneIndex(target));
             } catch (Exception e) {
                 log.error("[자동연동] 실패 : indexInfoId={}", indexInfoId, e);
+                syncJobRepository.save(
+                        SyncJob.of(
+                                JobType.INDEX_DATA,
+                                indexInfo,
+                                today,
+                                SYSTEM_WORKER,
+                                JobResult.FAILED));
                 results.add(new AutoSyncResult(indexInfoId, false));
             }
         }
