@@ -24,12 +24,12 @@
 
 ### Backend
 - ![Java](https://img.shields.io/badge/Java-17+-ED8B00?style=flat-square&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot%203.5.13-6DB33F?style=flat-square&logo=springboot&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot%203.5.16-6DB33F?style=flat-square&logo=springboot&logoColor=white)
 ![Spring Data JPA](https://img.shields.io/badge/Spring%20Data%20JPA-6DB33F?style=flat-square&logoColor=white)
 ![Spring Validation](https://img.shields.io/badge/Spring%20Validation-6DB33F?style=flat-square&logo=spring&logoColor=white)
 
-- ![QueryDSL](https://img.shields.io/badge/QueryDSL%205.1.0-0769AD?style=flat-square&logo=hibernate&logoColor=white)
-![MapStruct](https://img.shields.io/badge/MapStruct%201.5.5-6DB33F?style=flat-square&logo=spring&logoColor=white)
+- ![QueryDSL](https://img.shields.io/badge/QueryDSL%206.10.1%20(OpenFeign)-0769AD?style=flat-square&logoColor=white)
+![MapStruct](https://img.shields.io/badge/MapStruct%201.6.3-6DB33F?style=flat-square&logo=spring&logoColor=white)
 ![Lombok](https://img.shields.io/badge/Lombok%201.18-BC4521?style=flat-square&logoColor=white)
 
 ### Database & Infra
