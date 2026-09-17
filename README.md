@@ -176,7 +176,124 @@
 <details>
 <summary>🧑‍💻김승호</summary>
 
-(내용 준비 중)
+## Open API 연동 (`domain/openapi`)
+
+공공데이터포털 **주가지수시세 API**를 호출해 조건에 맞는 시세를 **모든 페이지에서 수집**하는 내부 클라이언트.
+자체 DB 테이블이나 REST 엔드포인트는 없고, 연동 작업(`syncjob`)이 호출해서 결과를 저장한다.
+
+**호출 흐름**
+`fetchStockMarketIndex(query)` → ① 조회 조건 검증 → ② 설정 검증 → ③ 페이지 반복 호출 → ④ 응답·페이지네이션 검증 → ⑤ 조회 조건으로 다시 걸러서 반환
+
+| 패키지 | 파일 | 역할 |
+|---|---|---|
+| `client/` | `OpenApiClient`, `impl/OpenApiClientImpl` | 호출 규칙(javadoc)과 구현 |
+| `config/` | `OpenApiProperties`, `OpenApiRestClientConfig` | 설정값 바인딩, `openApiRestClient` 빈 |
+| `dto/request/` | `StockMarketIndexQuery` | 조회 조건 |
+| `dto/response/` | `StockMarketIndexResponse` / `Header` / `Body` / `Items` / `Item` | 외부 응답 구조 |
+| `dto/jackson/` | 역직렬화기 6종 + `OpenApiNumberParser` | 불규칙한 외부 응답 형식 처리 |
+| `exception/` | `OpenApiClientException`, `OpenApiErrorKind` | 실패 8종 분류 |
+
+---
+
+### 1. 설정 검증 (config)
+
+`findex.openapi.*` → `OpenApiProperties`
+
+| 키 | 기본값 | 설명 |
+|---|---|---|
+| `uri` | (필수) | 주가지수시세 오퍼레이션 전체 URL |
+| `service-key` | `""` | 디코딩 서비스 키 (`.env`의 `PUBLIC_API_SERVICE_KEY`), 인코딩은 클라이언트가 처리 |
+| `num-of-rows` | `100` | 페이지당 행 수 |
+| `connect-timeout` | `3s` | 연결 타임아웃 |
+| `call-timeout` | `15s` | **페이지 1회 요청** 타임아웃 (전체 페이지 합산 제한은 없음) |
+
+- **기동 시점** (`OpenApiRestClientConfig`): `uri`가 비었거나 타임아웃이 0 이하면 `IllegalStateException`으로 **앱 기동 실패**
+- **호출 시점** (`validateConfig`): 서비스 키 누락, `numOfRows < 1`, 잘못된 타임아웃이면 `CONFIG_UNAVAILABLE`
+  → 서비스 키가 없어도 앱은 뜨고, 실제 호출할 때 실패함
+- `RestClient` 구성: JDK `HttpClient` 사용, **리다이렉트 따라가지 않음**, URI 인코딩 모드는 `NONE`(클라이언트가 직접 인코딩해서 이중 인코딩 방지)
+
+### 2. 조회 조건 검증 (query)
+
+`StockMarketIndexQuery(indexName, baseDate, fromDate, toDate)`: query 자체는 필수, 각 필드는 선택
+
+| 규칙 | 위반 시 |
+|---|---|
+| query가 `null` | `INVALID_REQUEST` |
+| `baseDate`(하루)와 `fromDate`/`toDate`(기간)를 같이 지정 | `INVALID_REQUEST` |
+| `fromDate`가 `toDate`보다 뒤 | `INVALID_REQUEST` |
+| `toDate` 다음 날을 계산할 수 없음 (`LocalDate.MAX`) | `INVALID_REQUEST` |
+
+- `indexName`: 앞뒤 공백을 뺀 값과 **완전 일치**. `null`이나 공백이면 이름 조건 없음
+- 기간은 **양 끝 포함**. 외부 API의 `endBasDt`가 종료일을 포함하지 않아서 **종료일 + 1일**을 보낸다
+- 날짜를 모두 생략하면 제공자의 기본 조회 범위를 따른다 (최신 하루만 온다고 가정하면 안 됨)
+
+### 3. 요청 생성
+
+- 공통 파라미터: `serviceKey`, `resultType=json`, `numOfRows`, `pageNo`
+- 조건 파라미터: `idxNm`, `basDt` 또는 `beginBasDt`/`endBasDt` (`yyyyMMdd`)
+- 모든 값은 `UriUtils.encode`로 **한 번만** 인코딩한다 (서비스 키의 `+`가 공백으로 바뀌는 문제 방지)
+- 동기 호출이며 **자동 재시도는 없다**
+
+### 4. 응답 역직렬화 (jackson)
+
+외부 응답 형식이 불규칙해서 전용 역직렬화기를 둔다.
+
+| 역직렬화기 | 처리 내용 |
+|---|---|
+| `StockMarketIndexItemsDeserializer` | `body.items`가 `null`이거나 `""`이면 빈 목록 |
+| `FlexibleItemListDeserializer` | `item`이 **단건 객체든 배열이든** 같은 `List`로 변환 |
+| `OpenApiBigDecimal/Integer/LongDeserializer` | 숫자와 숫자 문자열을 모두 허용, **`double`을 거치지 않아 정밀도 유지**, 빈 값은 `null`, Integer/Long은 소수부가 있으면 거부 |
+| `OpenApiYyyyMmDdDeserializer` | 8자리 `yyyyMMdd`를 엄격하게 파싱 (`20260230` 같은 날짜 거부) |
+
+- 모든 응답 DTO는 `@JsonIgnoreProperties(ignoreUnknown = true)`
+- `basDt`(시세 기준일)와 `basPntm`(지수 산출 기준 시점)은 **서로 다른 값이므로 저장할 때 구분**
+
+### 5. 응답 검증
+
+| 검사 | 위반 시 |
+|---|---|
+| HTTP 4xx/5xx | `HTTP_ERROR` (상태 코드만 기록) |
+| 본문이 비었거나, XML(`<`로 시작)이거나, JSON 파싱 실패 | `MALFORMED_RESPONSE` |
+| `header`나 `resultCode`가 없음 | `MALFORMED_RESPONSE` |
+| `resultCode`가 `"00"`이 아님 | `EXTERNAL_HEADER` |
+| `body` 누락, `totalCount` 누락 또는 음수 | `MALFORMED_RESPONSE` |
+| 항목에 `idxNm`, `idxCsf`, `basDt` 중 하나라도 없음 | `MALFORMED_RESPONSE` |
+
+### 6. 페이지네이션 검증
+
+`totalCount`만큼 모일 때까지 `pageNo`를 1부터 올리며 반복하고, 아래 경우는 모두 `PAGINATION_INCONSISTENT`로 처리한다.
+
+- 페이지마다 `totalCount`가 다름
+- 응답의 `pageNo`가 요청한 번호와 다름
+- `totalCount = 0`인데 항목이 있음
+- 수집이 끝나기 전에 빈 페이지가 옴 (무한 루프 방지)
+- 같은 `(idxCsf, idxNm, basDt)`가 중복됨
+- 수집 건수가 `totalCount`를 넘음
+
+### 7. 반환 결과
+
+- 모든 페이지를 검증한 뒤 **원래 조회 조건(지수명 완전 일치, 날짜 범위)으로 다시 걸러서** 불변 리스트로 반환
+- 정상 0건이나 필터링 후 0건은 **빈 리스트**. `null`이나 일부 페이지만 모은 결과는 반환하지 않음 (한 페이지라도 실패하면 예외)
+- `idxCsf`, `idxNm`, `basDt`만 값이 보장되고 나머지 필드는 `null`일 수 있음. **누락 값을 0으로 채우지 않으며**, 누락 행 처리는 호출부 책임
+- 지수 정보와 연결할 때는 `idxCsf`와 `idxNm`을 **함께** 비교한다
+
+### 8. 예외 (exception)
+
+실패는 모두 `OpenApiClientException(kind, message)` 하나로 던지고, `syncjob`이 잡아서 실패 이력으로 남긴다.
+HTTP 상태로 바꾸거나 이력으로 변환하는 일은 `syncjob`이 맡는다.
+
+| `OpenApiErrorKind` | 의미 |
+|---|---|
+| `CONFIG_UNAVAILABLE` | 서비스 키 누락 등 설정 문제 |
+| `INVALID_REQUEST` | 잘못된 조회 조건 |
+| `HTTP_ERROR` | 외부 HTTP 4xx/5xx |
+| `NETWORK_ERROR` | 연결 실패 등 네트워크·IO 오류 |
+| `TIMEOUT` | 연결 또는 요청 시간 초과 |
+| `EXTERNAL_HEADER` | HTTP는 정상이지만 `resultCode`가 `00`이 아님 |
+| `MALFORMED_RESPONSE` | JSON 구조나 필수 필드 오류 (정상 0건과 구분) |
+| `PAGINATION_INCONSISTENT` | 페이지 진행이나 건수가 서로 맞지 않음 |
+
+- 타임아웃도 `IOException` 계열이라서 **타임아웃을 네트워크 오류보다 먼저** 판별한다
 
 </details>
 
