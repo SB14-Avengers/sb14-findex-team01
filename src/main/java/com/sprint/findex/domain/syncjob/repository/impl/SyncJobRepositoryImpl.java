@@ -86,7 +86,9 @@ public class SyncJobRepositoryImpl implements SyncJobRepositoryCustom {
     }
 
     private BooleanExpression loeJobTime(LocalDateTime jobTime) {
-        return jobTime == null ? null : syncJob.createdAt.loe(toInstant(jobTime));
+        return jobTime == null
+                ? null
+                : syncJob.createdAt.lt(toInstant(jobTime.toLocalDate().plusDays(1).atStartOfDay()));
     }
 
     private BooleanExpression eqResult(JobResult result) {
