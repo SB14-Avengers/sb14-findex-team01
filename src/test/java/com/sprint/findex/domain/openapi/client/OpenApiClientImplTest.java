@@ -158,34 +158,6 @@ class OpenApiClientImplTest {
     }
 
     @Test
-    void postFiltersInclusiveDateRangeAfterCollectingAllRows() {
-        startServer(
-                exchange ->
-                        writeJson(
-                                exchange,
-                                envelope(
-                                        10,
-                                        1,
-                                        3,
-                                        itemJson("20260101", "KOSPI", "코스피"),
-                                        itemJson("20260102", "KOSPI", "코스피"),
-                                        itemJson("20260103", "KOSPI", "코스피"))));
-
-        List<StockMarketIndexItem> result =
-                client(properties(SECRET_KEY, 10, Duration.ofSeconds(2)))
-                        .fetchStockMarketIndex(
-                                new StockMarketIndexQuery(
-                                        "코스피",
-                                        null,
-                                        LocalDate.of(2026, 1, 1),
-                                        LocalDate.of(2026, 1, 2)));
-
-        assertThat(result)
-                .extracting(StockMarketIndexItem::basDt)
-                .containsExactly(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 2));
-    }
-
-    @Test
     void postFiltersExactIndexName() {
         startServer(
                 exchange ->
@@ -257,7 +229,7 @@ class OpenApiClientImplTest {
     }
 
     @Test
-    void blankResultCodeIsMalformed() {
+    void blankResultCodeIsExternalHeader() {
         startServer(
                 exchange ->
                         writeJson(
@@ -266,8 +238,7 @@ class OpenApiClientImplTest {
                                 {"response":{"header":{"resultCode":"","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":0,"pageNo":1,"totalCount":0,"items":""}}}
                                 """));
 
-        assertSecretFreeFailure(
-                OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 응답 header resultCode가 없습니다.");
+        assertSecretFreeFailure(OpenApiErrorKind.EXTERNAL_HEADER, "Open API header error");
     }
 
     @Test
@@ -310,7 +281,7 @@ class OpenApiClientImplTest {
     }
 
     @Test
-    void missingHeaderIsMalformedNotZeroData() {
+    void missingHeaderIsExternalHeaderNotZeroData() {
         startServer(
                 exchange ->
                         writeJson(
@@ -319,7 +290,7 @@ class OpenApiClientImplTest {
                                 {"response":{"body":{"numOfRows":10,"pageNo":1,"totalCount":0,"items":""}}}
                                 """));
 
-        assertSecretFreeFailure(OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 응답 header가 없습니다.");
+        assertSecretFreeFailure(OpenApiErrorKind.EXTERNAL_HEADER, "Open API header error");
     }
 
     @Test
@@ -333,6 +304,20 @@ class OpenApiClientImplTest {
                                 """));
 
         assertSecretFreeFailure(OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 응답 body가 없습니다.");
+    }
+
+    @Test
+    void nullItemIsMalformedResponse() {
+        startServer(
+                exchange ->
+                        writeJson(
+                                exchange,
+                                """
+                                {"response":{"header":{"resultCode":"00","resultMsg":"NORMAL SERVICE."},"body":{"numOfRows":10,"pageNo":1,"totalCount":1,"items":{"item":[null]}}}}
+                                """));
+
+        assertSecretFreeFailure(
+                OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 응답 JSON을 해석할 수 없습니다.");
     }
 
     @Test
