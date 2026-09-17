@@ -374,7 +374,43 @@ HTTP 상태로 바꾸거나 이력으로 변환하는 일은 `syncjob`이 맡는
 <details>
 <summary>🧑‍💻이수찬</summary>
 
-(내용 준비 중)
+## 📈 지수 정보 관리
+
+### 지수 정보 등록
+
+<img width="1585" height="661" alt="image" src="https://github.com/user-attachments/assets/89fde672-9d05-42a6-ac49-463536377559" />
+
+* 사용자 직접 등록(`registerFromUser`) / Open API 자동 등록(`registerFromOpenApi`) 분리 구현
+* 지수 분류명 + 지수명 조합 중복 등록 시 409 처리
+* 등록과 동시에 자동 연동 설정(`AutoSyncConfig`)이 비활성 상태로 함께 생성
+
+### 지수 정보 단건 조회
+
+<img width="1808" height="473" alt="image" src="https://github.com/user-attachments/assets/33bae2d2-3a6f-41a4-8e6e-eb1d597b504a" />
+
+* id로 지수 정보 조회, 존재하지 않으면 404 처리
+* 응답 `200 OK`, `IndexInfoDto` 반환
+
+### 지수 정보 수정 API
+
+<img width="1817" height="552" alt="image" src="https://github.com/user-attachments/assets/c8780496-2515-484d-8d50-170be103d424" />
+
+* 채용 종목 수, 기준 시점, 기준 지수, 즐겨찾기만 부분 수정 가능 (지수 분류명·지수명은 수정 불가)
+* 값이 없는 필드는 기존 값 유지, 값이 있으면 생성 시와 동일한 검증(`@Positive` 등) 적용
+* 존재하지 않는 id면 404 처리
+
+### 지수 정보 삭제
+
+<img width="1585" height="657" alt="image" src="https://github.com/user-attachments/assets/f96b8e80-2087-445d-a079-bc0848acedc7" />
+
+* 삭제 시 `ON DELETE CASCADE`로 연관된 지수 데이터도 함께 삭제
+* 존재하지 않는 id면 404 처리
+
+### 지수 정보 목록 조회
+
+* 지수 분류명·지수명 부분 일치, 즐겨찾기 완전 일치 필터 지원, 커서 기반 페이지네이션
+* QueryDSL 동적 쿼리 — 지수 분류명/지수명/채용 종목 수 중 1개 정렬, 동점 그룹 안에서는 `id`로 보조 정렬
+* 정렬 기준이 `id`가 아닐 때도 데이터 누락 없이 다음 페이지를 찾도록 `cursor`(정렬 기준값) + `idAfter`(보조 id) 조합으로 커서 조건 구성
 
 </details>
 
