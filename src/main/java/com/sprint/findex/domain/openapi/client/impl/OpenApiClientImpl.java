@@ -11,28 +11,24 @@ import com.sprint.findex.domain.openapi.dto.response.StockMarketIndexItem;
 import com.sprint.findex.domain.openapi.dto.response.StockMarketIndexResponse;
 import com.sprint.findex.domain.openapi.exception.OpenApiClientException;
 import com.sprint.findex.domain.openapi.exception.OpenApiErrorKind;
-import java.io.IOException;
-import java.net.ConnectException;
 import java.net.SocketTimeoutException;
-import java.net.URI;
 import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.DateTimeException;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.util.UriBuilder;
 import org.springframework.web.util.UriUtils;
 
 @Slf4j
@@ -59,157 +55,116 @@ public class OpenApiClientImpl implements OpenApiClient {
     public List<StockMarketIndexItem> fetchStockMarketIndex(StockMarketIndexQuery query) {
         validateQuery(query);
         validateConfig();
+        String indexName = trimmedIndexName(query);
+        Map<String, String> baseParams = buildBaseParams(query, indexName);
+
+        StockMarketIndexBody firstPage = fetchBody(baseParams, 1);
+        int totalCount = requireTotalCount(firstPage);
+        if (totalCount == 0) {
+            requireNoItems(firstPage);
+            return List.of();
+        }
 
         List<StockMarketIndexItem> collected = new ArrayList<>();
         Set<ItemKey> seenKeys = new HashSet<>();
-        Integer expectedTotal = null;
-        int pageNo = 1;
-
-        while (true) {
-            StockMarketIndexResponse response = fetchPage(query, pageNo);
-            StockMarketIndexBody body = requireEnvelope(response);
-            int totalCount = requireTotalCount(body);
-
-            if (expectedTotal == null) {
-                expectedTotal = totalCount;
-            } else if (expectedTotal != totalCount) {
-                throw fail(
-                        OpenApiErrorKind.PAGINATION_INCONSISTENT,
-                        "Open API totalCount가 페이지마다 다릅니다.");
-            }
-
-            if (body.pageNo() != null && body.pageNo() != pageNo) {
-                throw fail(OpenApiErrorKind.PAGINATION_INCONSISTENT, "Open API pageNo가 요청과 다릅니다.");
-            }
-
-            List<StockMarketIndexItem> pageItems = response.items();
-            if (pageItems == null) {
-                pageItems = List.of();
-            }
-
-            if (expectedTotal == 0) {
-                if (!pageItems.isEmpty()) {
-                    throw fail(
-                            OpenApiErrorKind.PAGINATION_INCONSISTENT,
-                            "Open API totalCount=0 이지만 항목이 있습니다.");
-                }
-                return List.of();
-            }
-
-            if (pageItems.isEmpty()) {
-                throw fail(
-                        OpenApiErrorKind.PAGINATION_INCONSISTENT,
-                        "Open API 페이지에 항목이 없어 수집을 진행할 수 없습니다.");
-            }
-
-            for (StockMarketIndexItem item : pageItems) {
-                validateItem(item);
-                ItemKey itemKey = new ItemKey(item.idxCsf(), item.idxNm(), item.basDt());
-                if (!seenKeys.add(itemKey)) {
-                    throw fail(
-                            OpenApiErrorKind.PAGINATION_INCONSISTENT,
-                            "Open API 항목이 페이지에서 중복되었습니다.");
-                }
-            }
-            collected.addAll(pageItems);
-
-            if (collected.size() == expectedTotal) {
-                break;
-            }
-            if (collected.size() > expectedTotal) {
-                throw fail(
-                        OpenApiErrorKind.PAGINATION_INCONSISTENT,
-                        "Open API 수집 건수가 totalCount를 초과했습니다.");
-            }
-
-            pageNo++;
+        appendPage(firstPage, collected, seenKeys, totalCount);
+        for (int pageNo = 2; collected.size() < totalCount; pageNo++) {
+            StockMarketIndexBody page = fetchBody(baseParams, pageNo);
+            requireSameTotalCount(page, totalCount);
+            appendPage(page, collected, seenKeys, totalCount);
         }
 
-        return List.copyOf(postFilter(collected, query));
+        return filterByIndexName(collected, indexName);
     }
 
-    private StockMarketIndexResponse fetchPage(StockMarketIndexQuery query, int pageNo) {
-        log.debug("Open API 페이지 요청: pageNo={}", pageNo);
-        String raw;
+    /** 페이지마다 달라지는 pageNo를 제외한 쿼리 파라미터를 인코딩된 값으로 한 번만 만든다. */
+    private Map<String, String> buildBaseParams(StockMarketIndexQuery query, String indexName) {
+        Map<String, String> params = new LinkedHashMap<>();
+        params.put("serviceKey", encodeOnce(properties.getServiceKey()));
+        params.put("resultType", encodeOnce(RESULT_TYPE_JSON));
+        params.put("numOfRows", encodeOnce(Integer.toString(properties.getNumOfRows())));
+
+        if (indexName != null) {
+            params.put("idxNm", encodeOnce(indexName));
+        }
+        if (query.baseDate() != null) {
+            params.put("basDt", encodeOnce(formatDate(query.baseDate())));
+        }
+        if (query.fromDate() != null) {
+            params.put("beginBasDt", encodeOnce(formatDate(query.fromDate())));
+        }
+        if (query.toDate() != null) {
+            params.put("endBasDt", encodeOnce(formatDate(exclusiveEndDate(query.toDate()))));
+        }
+        return params;
+    }
+
+    /** 외부 API의 endBasDt는 종료일을 포함하지 않으므로 다음 날을 보낸다. */
+    private static LocalDate exclusiveEndDate(LocalDate toDate) {
         try {
-            raw =
-                    openApiRestClient
-                            .get()
-                            .uri(uriBuilder -> buildRequestUri(uriBuilder, query, pageNo))
-                            .retrieve()
-                            .onStatus(
-                                    HttpStatusCode::isError,
-                                    (request, response) -> {
-                                        // 오류 본문에 서비스 키가 포함될 수 있으므로 상태 코드만 기록한다.
-                                        throw fail(
-                                                OpenApiErrorKind.HTTP_ERROR,
-                                                "Open API HTTP "
-                                                        + response.getStatusCode().value());
-                                    })
-                            .body(String.class);
+            return toDate.plusDays(1);
+        } catch (DateTimeException ex) {
+            throw fail(OpenApiErrorKind.INVALID_REQUEST, "종료일 다음 날을 계산할 수 없습니다.");
+        }
+    }
+
+    private StockMarketIndexBody fetchBody(Map<String, String> baseParams, int pageNo) {
+        String raw = requestPage(baseParams, pageNo);
+        StockMarketIndexResponse response = parse(raw);
+        return requireEnvelope(response);
+    }
+
+    private String requestPage(Map<String, String> baseParams, int pageNo) {
+        log.debug("Open API 페이지 요청: pageNo={}", pageNo);
+        try {
+            return openApiRestClient
+                    .get()
+                    .uri(
+                            uriBuilder -> {
+                                baseParams.forEach(uriBuilder::queryParam);
+                                uriBuilder.queryParam("pageNo", pageNo);
+                                return uriBuilder.build();
+                            })
+                    .retrieve()
+                    .onStatus(
+                            HttpStatusCode::isError,
+                            (request, response) -> {
+                                // 오류 본문에 서비스 키가 포함될 수 있으므로 상태 코드만 기록한다.
+                                throw fail(
+                                        OpenApiErrorKind.HTTP_ERROR,
+                                        "Open API HTTP " + response.getStatusCode().value());
+                            })
+                    .body(String.class);
         } catch (OpenApiClientException ex) {
             throw ex;
         } catch (RuntimeException ex) {
             throw translateTransport(ex);
         }
+    }
 
+    private StockMarketIndexResponse parse(String raw) {
         if (isBlank(raw)) {
             throw fail(OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 응답 본문이 비어 있습니다.");
         }
         if (raw.stripLeading().startsWith("<")) {
             throw fail(OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 응답이 JSON이 아닙니다.");
         }
+        StockMarketIndexResponse parsed;
         try {
-            StockMarketIndexResponse parsed =
-                    objectMapper.readValue(raw, StockMarketIndexResponse.class);
-            if (parsed == null) {
-                throw fail(OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 응답 JSON을 해석할 수 없습니다.");
-            }
-            return parsed;
-        } catch (OpenApiClientException ex) {
-            throw ex;
+            parsed = objectMapper.readValue(raw, StockMarketIndexResponse.class);
         } catch (JsonProcessingException ex) {
             throw fail(OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 응답 JSON을 해석할 수 없습니다.");
         }
-    }
-
-    private URI buildRequestUri(UriBuilder uriBuilder, StockMarketIndexQuery query, int pageNo) {
-        uriBuilder.queryParam("serviceKey", encodeOnce(properties.getServiceKey()));
-        uriBuilder.queryParam("resultType", encodeOnce(RESULT_TYPE_JSON));
-        uriBuilder.queryParam("numOfRows", encodeOnce(Integer.toString(properties.getNumOfRows())));
-        uriBuilder.queryParam("pageNo", encodeOnce(Integer.toString(pageNo)));
-
-        String indexName = trimmedIndexName(query);
-        if (indexName != null) {
-            uriBuilder.queryParam("idxNm", encodeOnce(indexName));
+        if (parsed == null) {
+            throw fail(OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 응답 JSON을 해석할 수 없습니다.");
         }
-        if (query.baseDate() != null) {
-            uriBuilder.queryParam("basDt", encodeOnce(formatDate(query.baseDate())));
-        } else {
-            if (query.fromDate() != null) {
-                uriBuilder.queryParam("beginBasDt", encodeOnce(formatDate(query.fromDate())));
-            }
-            if (query.toDate() != null) {
-                uriBuilder.queryParam(
-                        "endBasDt", encodeOnce(formatDate(query.toDate().plusDays(1))));
-            }
-        }
-        return uriBuilder.build();
+        return parsed;
     }
 
     private static StockMarketIndexBody requireEnvelope(StockMarketIndexResponse response) {
-        if (response == null) {
-            throw fail(OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 응답이 비어 있습니다.");
-        }
-        StockMarketIndexHeader header = response.header();
-        if (header == null) {
-            throw fail(OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 응답 header가 없습니다.");
-        }
-        String resultCode = header.resultCode();
-        if (isBlank(resultCode)) {
-            throw fail(OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 응답 header resultCode가 없습니다.");
-        }
         if (!response.isNormalService()) {
+            StockMarketIndexHeader header = response.header();
+            String resultCode = header == null ? null : header.resultCode();
             throw fail(OpenApiErrorKind.EXTERNAL_HEADER, externalHeaderMessage(resultCode));
         }
         StockMarketIndexBody body = response.body();
@@ -221,7 +176,9 @@ public class OpenApiClientImpl implements OpenApiClient {
 
     /** 서비스 키 노출을 막기 위해 resultCode는 두 자리 숫자만 메시지에 포함한다. */
     private static String externalHeaderMessage(String resultCode) {
-        if (resultCode.length() == 2 && resultCode.chars().allMatch(Character::isDigit)) {
+        if (resultCode != null
+                && resultCode.length() == 2
+                && resultCode.chars().allMatch(Character::isDigit)) {
             return "Open API header error: " + resultCode;
         }
         return "Open API header error";
@@ -235,10 +192,50 @@ public class OpenApiClientImpl implements OpenApiClient {
         return totalCount;
     }
 
-    private static void validateItem(StockMarketIndexItem item) {
-        if (item == null) {
-            throw fail(OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 항목이 비어 있습니다.");
+    private static void requireSameTotalCount(StockMarketIndexBody page, int expectedTotal) {
+        if (requireTotalCount(page) != expectedTotal) {
+            throw fail(
+                    OpenApiErrorKind.PAGINATION_INCONSISTENT, "Open API totalCount가 페이지마다 다릅니다.");
         }
+    }
+
+    private static void requireNoItems(StockMarketIndexBody page) {
+        if (!page.itemList().isEmpty()) {
+            throw fail(
+                    OpenApiErrorKind.PAGINATION_INCONSISTENT,
+                    "Open API totalCount=0 이지만 항목이 있습니다.");
+        }
+    }
+
+    /** 한 페이지의 항목을 검증해 누적한다. 빈 페이지를 허용하면 수집이 끝나지 않으므로 실패로 처리한다. */
+    private static void appendPage(
+            StockMarketIndexBody page,
+            List<StockMarketIndexItem> collected,
+            Set<ItemKey> seenKeys,
+            int totalCount) {
+        List<StockMarketIndexItem> pageItems = page.itemList();
+        if (pageItems.isEmpty()) {
+            throw fail(
+                    OpenApiErrorKind.PAGINATION_INCONSISTENT,
+                    "Open API 페이지에 항목이 없어 수집을 진행할 수 없습니다.");
+        }
+
+        for (StockMarketIndexItem item : pageItems) {
+            validateItem(item);
+            if (!seenKeys.add(new ItemKey(item.idxCsf(), item.idxNm(), item.basDt()))) {
+                throw fail(OpenApiErrorKind.PAGINATION_INCONSISTENT, "Open API 항목이 페이지에서 중복되었습니다.");
+            }
+        }
+        collected.addAll(pageItems);
+
+        if (collected.size() > totalCount) {
+            throw fail(
+                    OpenApiErrorKind.PAGINATION_INCONSISTENT,
+                    "Open API 수집 건수가 totalCount를 초과했습니다.");
+        }
+    }
+
+    private static void validateItem(StockMarketIndexItem item) {
         if (isBlank(item.idxNm())) {
             throw fail(OpenApiErrorKind.MALFORMED_RESPONSE, "Open API 항목에 지수명이 없습니다.");
         }
@@ -250,30 +247,13 @@ public class OpenApiClientImpl implements OpenApiClient {
         }
     }
 
-    private static List<StockMarketIndexItem> postFilter(
-            List<StockMarketIndexItem> items, StockMarketIndexQuery query) {
-        String exactName = trimmedIndexName(query);
-        LocalDate exactDate = query.baseDate();
-        LocalDate from = query.fromDate();
-        LocalDate to = query.toDate();
-        List<StockMarketIndexItem> filtered = new ArrayList<>();
-        for (StockMarketIndexItem item : items) {
-            if (exactName != null && !exactName.equals(item.idxNm())) {
-                continue;
-            }
-            LocalDate baseDate = item.basDt();
-            if (exactDate != null && !exactDate.equals(baseDate)) {
-                continue;
-            }
-            if (from != null && baseDate.isBefore(from)) {
-                continue;
-            }
-            if (to != null && baseDate.isAfter(to)) {
-                continue;
-            }
-            filtered.add(item);
+    /** 날짜 조건은 외부 API가 정확히 적용하므로(beginBasDt 이상, endBasDt 미만) 지수명만 다시 확인한다. */
+    private static List<StockMarketIndexItem> filterByIndexName(
+            List<StockMarketIndexItem> items, String indexName) {
+        if (indexName == null) {
+            return List.copyOf(items);
         }
-        return filtered;
+        return items.stream().filter(item -> indexName.equals(item.idxNm())).toList();
     }
 
     private static void validateQuery(StockMarketIndexQuery query) {
@@ -290,45 +270,28 @@ public class OpenApiClientImpl implements OpenApiClient {
                 && query.fromDate().isAfter(query.toDate())) {
             throw fail(OpenApiErrorKind.INVALID_REQUEST, "시작일은 종료일보다 이후일 수 없습니다.");
         }
-        if (query.toDate() != null) {
-            try {
-                query.toDate().plusDays(1);
-            } catch (DateTimeException ex) {
-                throw fail(OpenApiErrorKind.INVALID_REQUEST, "종료일 다음 날을 계산할 수 없습니다.");
-            }
-        }
     }
 
+    /** URI와 타임아웃은 OpenApiRestClientConfig가 빈 생성 시 검증하므로 여기서는 확인하지 않는다. */
     private void validateConfig() {
         if (isBlank(properties.getServiceKey())) {
             throw fail(OpenApiErrorKind.CONFIG_UNAVAILABLE, "Open API 서비스 키가 설정되지 않았습니다.");
         }
-        if (isBlank(properties.getUri())) {
-            throw fail(OpenApiErrorKind.CONFIG_UNAVAILABLE, "Open API URI가 설정되지 않았습니다.");
-        }
         if (properties.getNumOfRows() < 1) {
             throw fail(OpenApiErrorKind.CONFIG_UNAVAILABLE, "Open API numOfRows가 올바르지 않습니다.");
         }
-        if (!isPositive(properties.getConnectTimeout())
-                || !isPositive(properties.getCallTimeout())) {
-            throw fail(OpenApiErrorKind.CONFIG_UNAVAILABLE, "Open API 타임아웃이 올바르지 않습니다.");
-        }
     }
 
+    /** 타임아웃이 아닌 전송 실패는 모두 네트워크 오류로 분류한다. */
     private static OpenApiClientException translateTransport(RuntimeException ex) {
         if (isTimeout(ex)) {
             return fail(OpenApiErrorKind.TIMEOUT, "Open API 호출이 시간 초과되었습니다.");
         }
-        if (isNetwork(ex)) {
-            return fail(OpenApiErrorKind.NETWORK_ERROR, "Open API 네트워크 오류가 발생했습니다.");
-        }
-        return fail(OpenApiErrorKind.NETWORK_ERROR, "Open API 호출에 실패했습니다.");
+        return fail(OpenApiErrorKind.NETWORK_ERROR, "Open API 네트워크 오류가 발생했습니다.");
     }
 
     private static boolean isTimeout(Throwable ex) {
         for (Throwable current = ex; current != null; current = current.getCause()) {
-            // 타임아웃도 IOException이므로 일반 네트워크 오류보다 먼저 분류한다.
-
             if (current instanceof TimeoutException
                     || current instanceof HttpTimeoutException
                     || current instanceof SocketTimeoutException) {
@@ -338,19 +301,8 @@ public class OpenApiClientImpl implements OpenApiClient {
         return false;
     }
 
-    private static boolean isNetwork(Throwable ex) {
-        for (Throwable current = ex; current != null; current = current.getCause()) {
-            if (current instanceof ResourceAccessException
-                    || current instanceof ConnectException
-                    || current instanceof IOException) {
-                return true;
-            }
-        }
-        return false;
-    }
-
+    /** 실패 로그는 호출부에서 한 번만 남기므로 여기서는 예외만 만든다. */
     private static OpenApiClientException fail(OpenApiErrorKind kind, String message) {
-        log.warn("Open API 호출 실패: kind={}", kind);
         return new OpenApiClientException(kind, message);
     }
 
@@ -372,10 +324,6 @@ public class OpenApiClientImpl implements OpenApiClient {
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
-    }
-
-    private static boolean isPositive(Duration duration) {
-        return duration != null && !duration.isZero() && !duration.isNegative();
     }
 
     private record ItemKey(String idxCsf, String idxNm, LocalDate basDt) {}
