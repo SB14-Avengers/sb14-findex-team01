@@ -353,7 +353,7 @@ HTTP 상태로 바꾸거나 이력으로 변환하는 일은 `syncjob`이 맡는
 - BigDecimal 소수 둘째 자리 반올림, 조회 쿼리는 JPQL findChartData
 
 #### 관심 지수 성과
-<img width="1596" height="710" alt="지수 성과" src="https://github.com/user-attachments/assets/6c7a6025-457a-4934-8a25-32dbc93adb61" />
+<img width="1398" height="350" alt="주요 지수" src="https://github.com/user-attachments/assets/f4c370a8-f2b4-494d-ada0-866154c4c53e" />
 
 - 즐겨찾기 지수마다 현재가·기준가·변동폭·등락률을 기간별(일간·주간·월간)로 계산
 - 기준일을 LocalDate.now()가 아닌 지수의 최신 데이터 날짜(findLatest)로 잡아, 당일 데이터 유무와 무관하게 "최신 종가 vs 직전 거래일 종가"가 되도록 수정 — 일간 등락률 전부 0.00% 나오던 버그 해결
