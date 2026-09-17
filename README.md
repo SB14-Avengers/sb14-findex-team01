@@ -344,7 +344,30 @@ HTTP 상태로 바꾸거나 이력으로 변환하는 일은 `syncjob`이 맡는
 <details>
 <summary>🧑‍💻김양현</summary>
 
-(내용 준비 중)
+#### 지수 차트 + 이동평균선
+<img width="1388" height="466" alt="지수 차트" src="https://github.com/user-attachments/assets/6488be6d-2ea0-4562-8b79-0e0a47342dc7" />
+
+- 기간(월간·분기·연간)별 종가 시계열과 MA5·MA20을 한 응답에 반환 — 세 리스트 모두 날짜 오름차순
+- 이동평균 앞구간이 비지 않도록 조회 시작을 days × 3일 앞으로 당겨 가져온 뒤 표시 구간만 응답에 포함
+- 평균은 날짜가 아닌 리스트 인덱스로 최근 N개를 세서 거래일 기준 — 휴장일 테이블 없이 연휴 구간 처리
+- BigDecimal 소수 둘째 자리 반올림, 조회 쿼리는 JPQL findChartData
+
+#### 관심 지수 성과
+<img width="1596" height="710" alt="지수 성과" src="https://github.com/user-attachments/assets/6c7a6025-457a-4934-8a25-32dbc93adb61" />
+
+- 즐겨찾기 지수마다 현재가·기준가·변동폭·등락률을 기간별(일간·주간·월간)로 계산
+- 기준일을 LocalDate.now()가 아닌 지수의 최신 데이터 날짜(findLatest)로 잡아, 당일 데이터 유무와 무관하게 "최신 종가 vs 직전 거래일 종가"가 되도록 수정 — 일간 등락률 전부 0.00% 나오던 버그 해결
+- 기간 전 날짜가 휴장이면 baseDate ≤ targetDate 조건으로 직전 거래일 종가를 자동 보정
+- 기준가가 없거나 0인 지수(신규 등록 등)는 결과에서 제외해 0으로 나누기 방지
+
+#### 성과 랭킹
+<img width="1596" height="710" alt="지수 성과" src="https://github.com/user-attachments/assets/c35ef420-f6c1-4846-81d7-3693e76153a5" />
+
+- 전체 지수의 등락률을 내림차순 정렬해 순위 부여, 상위 N개(기본 10) 반환
+- 정렬 기준을 금액이 아닌 등락률로 — 지수 규모 차이(KOSPI 35p = 1.2%, KOSDAQ 25p = 3.3%)로 인한 왜곡 방지
+- 등락률 계산 로직(indexPerformance)을 관심 지수 성과와 공유해 한 곳에서만 관리
+- 지수당 쿼리 2회(2N+1) 구조는 IN 조회 + groupingBy로 2회로 줄이는 개선안까지 설계, 발표 일정상 미적용 (알고 있는 한계로 기록)
+
 
 </details>
 
