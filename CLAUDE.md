@@ -68,7 +68,10 @@ docker compose up        # compose.yaml 기반 Postgres 15 컨테이너
 - **Spring Boot 3.5.16** (Spring Framework 6.x) — `build.gradle` 플러그인 `org.springframework.boot` 3.5.16 기준.
   표준 스타터 사용: `spring-boot-starter-web`, `spring-boot-starter-validation`, `spring-boot-starter-data-jpa`,
   `spring-boot-starter-aop`, `spring-boot-starter-actuator`
-- **Spring WebFlux** (`spring-boot-starter-webflux`) — Open API 연동용 `WebClient` 사용 목적으로 추가. `domain/openapi/client/`에 `OpenApiClient` 자리는 잡아놨지만 실제 `WebClient` 호출 로직은 아직 미구현
+- **Spring `RestClient`** (`spring-web`, Spring 6.1+ — 별도 스타터 없음) — Open API 연동용 동기 HTTP 클라이언트.
+  `domain/openapi/config/OpenApiRestClientConfig`에서 `openApiRestClient` 빈을 만들고, 요청 실행은 JDK 내장 `java.net.http.HttpClient`에 맡긴다.
+  **WebFlux(`spring-boot-starter-webflux`)는 제거했다** — 호출이 전부 동기(`block()`)라 reactor-netty 이벤트 루프가 하는 일이 없었고,
+  Netty 예외를 벗겨내는 코드와 타임아웃 노브 3종이 그 때문에 생겼다. 자동 연동 배치의 비동기는 `@Scheduled`/`@Async`(스레드 풀)라 리액티브가 필요 없다
 - **Gradle** (Groovy DSL) + `io.spring.dependency-management` 1.1.7 (BOM 기반 버전 관리)
 - **Spring Data JPA + PostgreSQL 15** (Docker Compose로 로컬 실행)
 - **H2** — 테스트/로컬 콘솔 전용 (`runtimeOnly` 스코프)
@@ -93,7 +96,6 @@ src/main/java/com/sprint/findex/
 │   ├── entity/
 │   │   └── BaseEntity.java           # @MappedSuperclass, Long PK(@GeneratedValue IDENTITY) + createdAt/updatedAt(Instant) + AuditingEntityListener
 │   ├── common/
-│   │   ├── ApiResponse.java          # 공통 성공 응답 래퍼 record (status, data) — ApiResponse.success(data)
 │   │   └── CursorPageResponse.java   # 커서 기반 페이지네이션 응답 record
 │   ├── exception/
 │   │   ├── GlobalExceptionHandler.java # @RestControllerAdvice, 전역 예외 처리
@@ -129,18 +131,22 @@ src/main/java/com/sprint/findex/
 │   │   └── controller/ service/(impl/)  dto/response/
 │   │       (ChartDataPoint, IndexInfoSummaryDto, IndexChartDto, IndexPerformanceDto, RankedIndexPerformanceDto)
 │   └── openapi/       # Open API 연동 (entity/controller/repository 없음 — 자체 DB/REST 없이 연동작업이 소비하는 내부 클라이언트)
-│       └── client/(impl/)  # OpenApiClient — 연동작업(syncjob) 담당자와 인터페이스 계약 합의 후 구현
+│       ├── client/(impl/)  # OpenApiClient / OpenApiClientImpl — RestClient로 페이지 반복 수집 (#13 구현 완료)
+│       ├── config/         # OpenApiProperties, OpenApiRestClientConfig(openApiRestClient 빈)
+│       ├── dto/            # request(StockMarketIndexQuery) / response(#14) / jackson(역직렬화기)
+│       └── exception/      # OpenApiClientException, OpenApiErrorKind(실패 8종)
 ```
 
 **패키지 규칙**: 도메인별로 폴더를 나누고(`domain/{도메인명}`), 그 안에서 `entity/controller/service/repository/mapper`를 다시 하위 패키지로 나눈다. Service/Repository는 인터페이스(`service/`, `repository/`)와 구현체(`service/impl/`, `repository/impl/`)를 분리한다. 여러 도메인이 공통으로 쓰는 코드만 `global/`에 둔다.
 
 **현재 상태**:
-- 채워진 것: `global/` 인프라(BaseEntity, ApiResponse/CursorPageResponse, BusinessException/GlobalExceptionHandler + 도메인별 ErrorCode, type enum, SwaggerConfig)와 도메인별 요청/응답 DTO(record, api-docs 레퍼런스 스펙 기준 필드 정렬)
+- 채워진 것: `global/` 인프라(BaseEntity, CursorPageResponse, BusinessException/GlobalExceptionHandler + 도메인별 ErrorCode, type enum, SwaggerConfig)와 도메인별 요청/응답 DTO(record, api-docs 레퍼런스 스펙 기준 필드 정렬)
 - 빈 스텁: 각 도메인의 Entity/Controller/Service(+impl)/Repository(+impl)/Mapper는 `public class Xxx {}` / `public interface Xxx {}` 형태의 빈 껍데기. Repository도 아직 `JpaRepository`를 상속하지 않음 — 팀원 배정 후 본격 구현 예정
 - 없는 것(과거 스캐폴딩에서 삭제됨, 필요 시 재도입): `global/aop/TimeTraceAspect`, `global/config/openapi/OpenApiConfig`
   - `SchedulingConfig` 클래스는 없지만 `@EnableScheduling`은 `FindexApplication`에 이미 적용돼있음 — 위 "핵심 기술 스택" Spring Scheduler 항목 참고
   - `global/config/QueryDSLConfig`(`JPAQueryFactory` 빈)는 있음 — 위 "핵심 기술 스택" QueryDSL 항목 참고
-  - `OpenApiClient`는 `external/` 대신 `domain/openapi/client/`(+`impl/`)에 빈 스텁으로 있음 — 6명/6도메인 매칭을 위해 연동작업(syncjob)에서 도메인으로 분리(9/8 팀 회의)
+  - `OpenApiClient`는 `external/` 대신 `domain/openapi/client/`(+`impl/`)에 있음 — 6명/6도메인 매칭을 위해 연동작업(syncjob)에서 도메인으로 분리(9/8 팀 회의).
+    #13/#14로 실제 구현 완료(호출 계약은 `OpenApiClient` javadoc) — 다만 서비스 키가 없어 **실제 공공데이터포털 호출은 아직 미검증**
 
 ### 엔티티 설계 패턴
 - 모든 엔티티는 `BaseEntity`(Long PK + `createdAt`/`updatedAt`, 타입 `Instant`)를 상속 — 원래 `BaseUpdatableEntity`로 분리돼있었으나, api-docs 응답 어디에도 생성/수정일시 필드가 없어서 구분 실익이 없다고 판단해 하나로 통합
@@ -150,12 +156,13 @@ src/main/java/com/sprint/findex/
 
 ### API 응답 패턴
 ```java
-// 성공 응답: ApiResponse<T>로 감싸서 반환 (record: int status, T data)
-ApiResponse.success(data)   // status 200 고정
+// 성공 응답: 감싸지 않고 DTO(또는 DTO 배열/CursorPageResponse)를 그대로 최상위에 반환
+return indexInfoMapper.toDto(savedIndexInfo);
 
 // 실패 응답: GlobalExceptionHandler가 ErrorResponse로 통일해서 반환
 ErrorResponse.of(errorCode, message)   // BusinessException 처리 시
 ```
+- 에러 응답(`ErrorResponse`)은 명세서에도 실제로 그 구조(`timestamp`/`status`/`message`/`details`)로 있어서 그대로 유지 — 영향 없음
 - 커스텀 예외는 `BusinessException` 하나만 두고, 도메인별 `BaseErrorCode` 구현 enum(`global/exception/errorcode/{Domain}ErrorCode.java`)으로 상태코드/코드/메시지를 정의한다.
 - 예: `throw new BusinessException(IndexInfoErrorCode.NOT_FOUND)` — `GlobalExceptionHandler`가 `BusinessException`을 잡아서 해당 errorCode 기준 `ErrorResponse`로 변환한다.
 - 새 도메인 예외가 필요하면 새 클래스를 만들 필요 없이, 그 도메인의 `{Domain}ErrorCode` enum에 상수만 추가하면 된다.
@@ -232,7 +239,7 @@ record CursorPageResponse<T>(
 
 ## 중요한 개발 규칙 (Development Guidelines)
 
-1. **응답 형식**: 성공은 `ApiResponse`, 실패는 `GlobalExceptionHandler`를 거친 `ErrorResponse`로 통일
+1. **응답 형식**: 성공은 DTO(또는 DTO 배열/`CursorPageResponse`)를 그대로 반환(래퍼 없음), 실패는 `GlobalExceptionHandler`를 거친 `ErrorResponse`로 통일
 2. **Entity 직접 노출 금지**: Controller/Service는 항상 DTO(record)로 변환해서 응답
 3. **예외 처리**: 새 예외 클래스를 만들지 말고, 해당 도메인의 `{Domain}ErrorCode` enum에 상수 추가 후 `throw new BusinessException(errorCode)`로 던진다 (`global/exception/errorcode/`)
 4. **페이지네이션**: 목록 조회는 커서 기반(`CursorPageResponse`) 패턴 준수
@@ -246,7 +253,6 @@ record CursorPageResponse<T>(
 ```
 src/main/java/com/sprint/findex/FindexApplication.java                 # 엔트리 포인트 (@EnableJpaAuditing)
 src/main/java/com/sprint/findex/global/entity/BaseEntity.java          # 엔티티 공통 베이스 (Long PK + createdAt/updatedAt)
-src/main/java/com/sprint/findex/global/common/ApiResponse.java         # 공통 성공 응답 래퍼
 src/main/java/com/sprint/findex/global/common/CursorPageResponse.java  # 커서 페이지네이션 응답
 src/main/java/com/sprint/findex/global/exception/BusinessException.java
 src/main/java/com/sprint/findex/global/exception/GlobalExceptionHandler.java
@@ -307,6 +313,7 @@ config/intellij/codeStyles/codeStyleConfig.xml # 인텔리제이 코드 스타�
   - `config/intellij/codeStyles/`(디렉토리 전체 — `codeStyleConfig.xml` + `Project.xml`)를 `.idea/codeStyles/`에 복사 (`installIntellijCodeStyle` 태스크) — `.idea/`는 전체 gitignore 대상이라 `config/`에 원본을 따로 두고 복사하는 방식. `codeStyleConfig.xml`은 인텔리제이 내장 스킴이 아니라 같은 폴더의 `Project.xml`(커스텀 4칸 들여쓰기 규칙)을 가리키도록 설정돼있음 — Spotless(`googleJavaFormat().aosp()`)랑 들여쓰기 칸수를 맞춘 거라 코딩 중 실시간 표시가 커밋 시 자동 포맷 결과랑 크게 어긋나지 않음
   - 수동으로 다시 설치하고 싶으면 `./gradlew installGitHooks` / `installGitMessageTemplate` / `installIntellijCodeStyle` 각각 재실행 가능
 - **AI 리뷰**: `.coderabbit.yaml` — CodeRabbit 자동 리뷰(한국어, assertive 프로파일). `.junie/` — JetBrains Junie 설정
+  - **Claude Code로 이 저장소에서 실행되는 모든 작업(대화형 세션, `@claude` 멘션 리뷰, PR 자동 리뷰 `claude-code-review.yml` 전부)은 코멘트·리뷰·설명을 한국어로 작성한다.** 클래스명·변수명·예외 이름 같은 코드 식별자는 원문 그대로 두되, 그 외 문장에 영어를 섞지 않는다. (`#77`: 자동 리뷰가 간헐적으로 영어로 나오는 문제 — 워크플로 프롬프트 강화와 별개로, 여기 명시해서 이중으로 보강)
 
 ## 테스트
 - 현재 `FindexApplicationTests.java`(컨텍스트 로드 확인)만 존재

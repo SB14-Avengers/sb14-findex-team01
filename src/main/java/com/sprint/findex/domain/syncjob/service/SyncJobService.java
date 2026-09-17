@@ -1,3 +1,15 @@
 package com.sprint.findex.domain.syncjob.service;
 
-public interface SyncJobService {}
+import com.sprint.findex.domain.syncjob.dto.request.SyncJobCreateRequest;
+import com.sprint.findex.domain.syncjob.dto.request.SyncJobSearchRequest;
+import com.sprint.findex.domain.syncjob.dto.response.SyncJobDto;
+import com.sprint.findex.global.common.CursorPageResponse;
+import java.util.List;
+
+public interface SyncJobService {
+    List<SyncJobDto> indexInfoSync();
+
+    List<SyncJobDto> indexDataSync(SyncJobCreateRequest request);
+
+    CursorPageResponse<SyncJobDto> find(SyncJobSearchRequest request);
+}

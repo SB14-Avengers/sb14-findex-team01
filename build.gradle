@@ -41,7 +41,6 @@ dependencies {
 	// ── Web & Validation ──────────────────────────────
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-webflux' //공공 Api 관련 의존성 추가
 
 	// ── Database & JPA ────────────────────────────────
 	// 참고: Boot 3.x는 H2 콘솔이 spring-boot-starter-data-jpa 등에 이미 내장되어있어서
@@ -137,10 +136,14 @@ tasks.register('installIntellijCodeStyle', Copy) {
 }
 
 // build 실행 시에도 위 세 가지가 같이 적용되게 남겨둠 (수동으로 다시 설치하고 싶을 때 `./gradlew installGitHooks` 등으로 재실행 가능)
-tasks.named('build') {
-	dependsOn tasks.named('installGitHooks')
-	dependsOn tasks.named('installGitMessageTemplate')
-	dependsOn tasks.named('installIntellijCodeStyle')
+def isCI = System.getenv('CI') != null
+
+if (!isCI) {
+  tasks.named('build') {
+    dependsOn tasks.named('installGitHooks')
+    dependsOn tasks.named('installGitMessageTemplate')
+    dependsOn tasks.named('installIntellijCodeStyle')
+  }
 }
 
 // ⚠️ 위 dependsOn만으로는 `./gradlew build`를 직접 실행해야만 설치됨 — 인텔리제이 Run 버튼(▶)은
@@ -157,7 +160,7 @@ if (file("$rootDir/.git/hooks").exists()) {
 		}
 	}
 	['git', 'config', 'commit.template', '.gitmessage.txt'].execute(null, rootDir).waitFor()
-	if (file("$rootDir/.idea").exists()) {
+  if (!isCI && file("$rootDir/.git/hooks").exists()) {
 		copy {
 			from "$rootDir/config/intellij/codeStyles"
 			into "$rootDir/.idea/codeStyles"

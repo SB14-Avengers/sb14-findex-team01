@@ -1,3 +1,14 @@
 package com.sprint.findex.domain.indexinfo.repository;
 
-public interface IndexInfoRepository {}
+import com.sprint.findex.domain.indexinfo.entity.IndexInfo;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface IndexInfoRepository
+        extends JpaRepository<IndexInfo, Long>, IndexInfoRepositoryCustom {
+    boolean existsByIndexClassificationAndIndexName(String indexClassification, String indexName);
+
+    List<IndexInfo> findByFavoriteTrue();
+
+    IndexInfo findByIndexClassificationAndIndexName(String indexClassification, String indexName);
+}
